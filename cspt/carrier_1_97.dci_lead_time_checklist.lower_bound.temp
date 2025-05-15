@@ -1,0 +1,36 @@
+Total_number_of_satisfied_requests=7 Total_number_of_fiber_link_recovery_task=4
+ID=0 Request (a=03 s=06 d=08) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 0
+ counter=1 Bm02n04 0
+ counter=2 Bm05n06 1
+ counter=3 Bm05n07 1
+ID=1 Request (a=03 s=06 d=10) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 0
+ counter=1 Bm02n04 0
+ counter=2 Bm05n06 1
+ counter=3 Bm05n07 1
+ID=2 Request (a=04 s=01 d=05) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 0
+ counter=1 Bm02n04 1
+ counter=2 Bm05n06 0
+ counter=3 Bm05n07 0
+ID=3 Request (a=04 s=02 d=03) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 1
+ counter=1 Bm02n04 0
+ counter=2 Bm05n06 0
+ counter=3 Bm05n07 0
+ID=4 Request (a=04 s=02 d=05) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 0
+ counter=1 Bm02n04 1
+ counter=2 Bm05n06 0
+ counter=3 Bm05n07 0
+ID=5 Request (a=04 s=03 d=05) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 1
+ counter=1 Bm02n04 1
+ counter=2 Bm05n06 0
+ counter=3 Bm05n07 0
+ID=6 Request (a=04 s=03 d=08) Weight=11 Satisfied_Bandwidth=100000
+ counter=0 Bm02n03 1
+ counter=1 Bm02n04 1
+ counter=2 Bm05n06 0
+ counter=3 Bm05n07 1

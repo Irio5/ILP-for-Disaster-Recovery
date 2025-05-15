@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.0)
+
+project(rcon_milp71_pne_cases_conf_generation_jpnm_3_carriers_4_dcps_gc2022_extension_v1)
+
+add_executable(rcon_milp71_pne_cases_conf_generation_jpnm_3_carriers_4_dcps_gc2022_extension_v1 main.cpp)
+
+install(TARGETS rcon_milp71_pne_cases_conf_generation_jpnm_3_carriers_4_dcps_gc2022_extension_v1 RUNTIME DESTINATION bin)

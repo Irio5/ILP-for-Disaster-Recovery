@@ -1,0 +1,42 @@
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+<CPLEXSolution version="1.2">
+ <header
+   problemName="eee.mps"
+   solutionName="p2"
+   solutionIndex="0"
+   objectiveValue="4999999"
+   solutionTypeValue="3"
+   solutionTypeString="primal"
+   solutionStatusValue="127"
+   solutionStatusString="integer feasible solution"
+   solutionMethodString="mip"
+   primalFeasible="0"
+   dualFeasible="0"
+   writeLevel="1"/>
+ <quality
+   epInt="1.0000000000000001e-05"
+   epRHS="9.9999999999999995e-07"
+   maxIntInfeas="0"
+   maxPrimalInfeas="0"
+   maxX="1"
+   maxSlack="0"/>
+ <linearConstraints>
+  <constraint name="00000001" index="0" slack="0"/>
+  <constraint name="00000002" index="1" slack="0"/>
+  <constraint name="00000003" index="2" slack="0"/>
+  <constraint name="00000004" index="3" slack="0"/>
+  <constraint name="00000005" index="4" slack="0"/>
+  <constraint name="00000006" index="5" slack="0"/>
+  <constraint name="00000007" index="6" slack="0"/>
+  <constraint name="00000008" index="7" slack="0"/>
+ </linearConstraints>
+ <variables>
+  <variable name="00000000" index="0" value="0"/>
+  <variable name="00000001" index="1" value="1"/>
+  <variable name="00000002" index="2" value="1"/>
+  <variable name="00000003" index="3" value="0"/>
+ </variables>
+ <objectiveValues>
+  <objective index="0" name="00000000" value="4999999"/>
+ </objectiveValues>
+</CPLEXSolution>

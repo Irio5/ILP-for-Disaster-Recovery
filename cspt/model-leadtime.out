@@ -1,0 +1,35 @@
+VARS: 00000000 Qj00g00
+OBJ
+3000000  00000000  [Qj00g00          ]  
+ 1  00000000  [Qj00g00          ]     R  0  B 1
+
+
+ 1  00000000  [Qj00g00          ]     R  0  B 1
+
+
+ 1  00000000  [Qj00g00          ]     R  0  B 1
+
+
+*Total recovery amount for a path i constraint 3 Sum[g,j](a_ij*Q_j^g) = Ki for any i in I Eq.(1)
+ 1  00000000  [Qj00g00          ]     R  1  B 1
+
+
+*Total recovery amount per phase constraint 4 Sum[j](Q_j^g) <= S for any g in Phase Eq.(2)
+ 1  00000000  [Qj00g00          ]     R  1  B 1
+
+
+*One recovery task only in one phase constraint 5 Sum[g](Q_j^g) <= 1 for any j in J, Eq.(3)
+*PSMT shared segment recovery task deadline constraint 5 (Q_j^g) = 0 for any j in J |have deadline by Theta_mn which is decided by PSMT. Block all the upper slot to 0, say, must use the same or lower slot. Eq.(4)
+Cannot read file dci_lead_time_pre_checklist.temp.
+*Keep the previous solution 5 Read_Pre_Var_Q_jg
+Pth1 finished
+Pth4 finished
+Pth5 finished
+Pth3 finished
+Pth6 finished
+Pth7 finished
+Pth8 finished
+***********
+Total_number_of_constraint =  5 
+Total_number_of_var        =  1 
+Total_number_of_Q_jg       =  1 

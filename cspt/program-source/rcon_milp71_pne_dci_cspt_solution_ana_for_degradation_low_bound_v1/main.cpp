@@ -1,0 +1,11264 @@
+////////////////
+//CSPT2.0  1. low bound 2. up bound 3. leadtime
+////////////////
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <math.h>
+
+#include <unistd.h>
+static pthread_mutex_t mt = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mt2 = PTHREAD_MUTEX_INITIALIZER;
+static int finished = 0;
+
+#define debug 1
+
+
+
+//NICT 20140203 Internal - external interconnection
+//Used infact the s and d are not used so assign them with a dummy value 0. The code itself is the original one for the least modification. Although totally refresh the coding might be better.
+// P_{ij,mn}^{(sd)w}  >>  P_{ij,mn}^{w}
+
+//For encoding, i j are the number in Edge node set (smaller than the Optical node set to save the memory). mn are the number in ROADM set. To present P for easy reading i j are all mapped to Node ID.
+
+
+#define PPP     Total_number_of_Psdzcwijmn = 0;\
+    Start_number_of_Psdzcwijmn = counter;\
+    {\
+        s = 0; \
+        d = 0; \
+        for (z = 0; z < Z; z ++)\
+        for (c = 0; c < C; c ++)\
+        {\
+            for (w = lambda_start; w < lambda_end; w ++)\
+            {\
+                for(i = 0; i < Ne; i ++) \
+                {\
+                    for(j = i + 1; j < Ne; j ++) \
+                    {\
+                        if(\
+                            !(\
+                            is_In_Outside_Edge_Node_Set(i) \
+                            && \
+                            is_In_Inside_Edge_Node_Set(j) \
+                            ) \
+                            && \
+                            !(\
+                            is_In_Outside_Edge_Node_Set(j) \
+                            && \
+                            is_In_Inside_Edge_Node_Set(i) \
+                            ) \
+                            && \
+                            is_feasible_lightpath[i][j] == 1 \
+                        ) \
+                        { \
+                            if((F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0))\
+                            {\
+                                for (m = 0; m < N; m ++)\
+                                {\
+                                    for (n = 0; n < N; n ++) \
+                                    {\
+                                        if ((U_w_m_n[w][V[m]][V[n]] == 0)\
+                                            ||\
+                                            (is_test_set[V[m]][V[n]] > 0)\
+                                        )\
+                                        {\
+                                            pcurrent_var = Get_VarID_P(s,d,z,c,w,i,j,V[m],V[n]);\
+                                            *pcurrent_var = counter;\
+                                            if(Ve[i] < Ve[j])\
+                                            {\
+                                                 sprintf(str,"Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d", Ve[s], Ve[d], z, c, w, Ve[i], Ve[j], V[m], V[n]);\
+                                                 if(debug == 1) \
+                                                 {\
+                                                     printf("VARS: %08ld Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d\n",counter, Ve[s], Ve[d], z, c, w, Ve[i], Ve[j], V[m], V[n]);\
+                                                 }\
+                                            }else if(Ve[i] > Ve[j])\
+                                             {\
+                                                 sprintf(str,"Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d", Ve[s], Ve[d], z, c, w, Ve[j], Ve[i], V[m], V[n]);\
+                                                 if(debug == 1) \
+                                                 {\
+                                                     printf("VARS: %08ld Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d\n",counter, Ve[s], Ve[d], z, c, w, Ve[j], Ve[i], V[m], V[n]);\
+                                                 }\
+                                            }\
+                                            strcpy((var+counter*40),str);\
+                                            counter ++;\
+                                            Total_number_of_Psdzcwijmn ++;\
+                                        }\
+                                    }\
+                                }\
+                            }\
+                        }\
+                    }\
+                }\
+            }\
+        }\
+    }
+//                                       printf("%08ld Ps%02dd%02d-c%02dw%02d-i%02dj%02d-m%02dn%02d\n",counter, Ve[s], Ve[d], c, w, Ve[i], Ve[j], V[m], V[n]);\
+
+
+#define MMM     Total_number_of_Mijmn = 0;\
+    Start_number_of_Mijmn = counter;\
+    {\
+        for(i = 0; i < Ne; i ++) \
+        {\
+            for(j = i + 1; j < Ne; j ++) \
+            {\
+                if(\
+                    !(\
+                    is_In_Outside_Edge_Node_Set(i) \
+                    && \
+                    is_In_Inside_Edge_Node_Set(j) \
+                    ) \
+                    && \
+                    !(\
+                    is_In_Outside_Edge_Node_Set(j) \
+                    && \
+                    is_In_Inside_Edge_Node_Set(i) \
+                    ) \
+                    && \
+                    is_feasible_lightpath[i][j] == 1 \
+                ) \
+                { \
+                    for (m = 0; m < N; m ++)\
+                    {\
+                        for (n = 0; n < N; n ++) \
+                        {\
+                            if ((Link[V[m]][V[n]] == 0)\
+                                ||\
+                                (is_test_set[V[m]][V[n]] > 0)\
+                            )\
+                            {\
+                                pcurrent_var = Get_VarID_M(i,j,V[m],V[n]);\
+                                *pcurrent_var = counter;\
+                                if(Ve[i] < Ve[j])\
+                                {\
+                                    sprintf(str,"Mi%02dj%02d-m%02dn%02d", Ve[i], Ve[j], V[m], V[n]);\
+                                    if(debug == 1) \
+                                    {\
+                                        printf("VARS: %08ld Mi%02dj%02d-m%02dn%02d\n",counter, Ve[i], Ve[j], V[m], V[n]);\
+                                    }\
+                                }else if(Ve[i] > Ve[j])\
+                                {\
+                                    sprintf(str,"Mi%02dj%02d-m%02dn%02d", Ve[j], Ve[i], V[m], V[n]);\
+                                    if(debug == 1) \
+                                    {\
+                                        printf("VARS: %08ld Mi%02dj%02d-m%02dn%02d\n",counter, Ve[j], Ve[i], V[m], V[n]);\
+                                    }\
+                                }\
+                                strcpy((var+counter*40),str);\
+                                counter ++;\
+                                Total_number_of_Mijmn ++;\
+                            }\
+                        }\
+                    }\
+                }\
+            }\
+        }\
+    }
+//                                       printf("%08ld Ps%02dd%02d-c%02dw%02d-i%02dj%02d-m%02dn%02d\n",counter, Ve[s], Ve[d], c, w, Ve[i], Ve[j], V[m], V[n]);\
+
+//Not used
+#define RRR    Total_number_of_Rsdcwija = 0;\
+    Start_number_of_Rsdcwija = counter;\
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)\
+    {\
+        s = source[node_pair_id]; \
+        d = dest[node_pair_id];\
+        for (c = 0; c < C; c ++)\
+        {\
+            for (w = lambda_start; w < lambda_end; w ++)\
+            {\
+                for (i = 0; i < Ne; i ++)\
+                {\
+                    for (j = i + 1; j < Ne; j++) \
+                    {\
+                         if(F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)\
+		         {\
+			      for (a = 0; a < N; a ++)\
+			      {\
+				  if (V[a] != Ve[i] && V[a] != Ve[j] && V[a] != Ve[s] && V[a] != Ve[d])\
+				  {\
+				      pcurrent_var = Get_VarID_R(s,d, c, w, i,j,V[a]);\
+				      *pcurrent_var = counter;\
+				      sprintf(str,"Rs%02dd%02d-c%02dw%02d-i%02dj%02d-a%02d", Ve[s], Ve[d], c, w, Ve[i], Ve[j], V[a]);\
+				      strcpy((var+counter*40),str);\
+				      counter ++;\
+				      Total_number_of_Rsdcwija ++;\
+				  }\
+			      }\
+			 }\
+                    }\
+                }\
+            }\
+        }\
+    }
+//				      printf("%08ld Rs%02dd%02d-c%02dw%02d-i%02dj%02d-a%02d\n", counter, Ve[s], Ve[d], c, w, Ve[i], Ve[j], V[a]);\
+
+//Not used
+#define YYY    Total_number_of_Ysdcwij = 0;\
+    Start_number_of_Ysdcwij = counter;\
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)\
+    {\
+        s = source[node_pair_id]; \
+        d = dest[node_pair_id]; \
+        for (c = 0; c < C; c ++)\
+        {\
+            for (w = lambda_start; w < lambda_end; w ++)\
+            {\
+                for (i = 0; i < Ne; i ++)\
+                {\
+                    for (j = i + 1; j < Ne; j++) \
+                    {\
+                         if(F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)\
+		         {\
+                                pcurrent_var = Get_VarID_Y(s,d, c, w, i,j);\
+                                *pcurrent_var = counter;\
+                                sprintf(str,"Ys%02dd%02d-c%02dw%02d-i%02dj%02d", Ve[s], Ve[d], c, w, Ve[i], Ve[j]);\
+                		strcpy((var+counter*40),str);\
+                                counter ++;\
+                                Total_number_of_Ysdcwij ++;\
+                         }\
+                    }\
+                }\
+            }\
+        }\
+    }
+//                                printf("%08ld Ys%02dd%02d-c%02dw%02d-i%02dj%02d\n", counter, Ve[s], Ve[d], c, w, Ve[i], Ve[j]);\
+
+//Used Lambda_{ij}^{sd}    sd is bidirectional to reduce the number of vars. ij is unidirectional, say distinguish ij and ji for traffic routing
+//!!!!
+//Lambda ij sd, where s, d, i, j are in the Edge node set (smaller than optical node set to save the memory) while for easy reading we present s,d, i,j mapped to underlying optical node ID.
+
+//NICT 2022 DCPs
+//Used Lambda_{ij}^{sd,a}    sd is bidirectional to reduce the number of vars. ij is unidirectional, say distinguish ij and ji for traffic routing, "a" is the IP over WDM traffic of customers, e.g., counterpart carriers, DCPs. Since the traffic of different customers should be distinguished and may routed over different routes.
+//!!!!
+//Lambda ij sd,a, where s, d, i, j are in the Edge node set (smaller than optical node set to save the memory) while for easy reading we present s,d, i,j mapped to underlying optical node ID.
+
+
+#define XXX    Total_number_of_X_asdij = 0;\
+    Start_number_of_X_asdij = counter;\
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++) \
+    { \
+        s = source[node_pair_id];  \
+        d = dest[node_pair_id]; \
+        a = customer_carrier_customer_id[node_pair_id];\
+        for (i = 0; i < Ne; i++) \
+        { \
+            for (j = 0; j < Ne; j++)\
+            { \
+                if ( \
+                    (i != d) && (j != s)\
+                    && \
+                    (i != j )\
+                    &&\
+                    !( \
+                    is_In_Outside_Edge_Node_Set(i) \
+                    && \
+                    is_In_Inside_Edge_Node_Set(j) \
+                    ) \
+                    && \
+                    !( \
+                    is_In_Outside_Edge_Node_Set(j) \
+                    && \
+                    is_In_Inside_Edge_Node_Set(i) \
+                    ) \
+                    && \
+                    is_feasible_lightpath[i][j] == 1 \
+                    && \
+                    ( \
+                    s == i \
+                    || \
+                    is_feasible_lightpath[s][i] == 1 \
+                    ) \
+                    && \
+                    (\
+                    d == j\
+                    ||\
+                    is_feasible_lightpath[d][j] == 1\
+                    )\
+                )\
+                {\
+                    pcurrent_var = Get_VarID_X(a,s,d,i,j);\
+                    *pcurrent_var = counter;\
+                    sprintf(str,"Xa%02ds%02dd%02d-i%02dj%02d   ", a, Ve[s],Ve[d],Ve[i],Ve[j]);\
+                    if(debug == 1) \
+                    {\
+                        printf("VARS: %08ld Xa%02ds%02dd%02d-i%02dj%02d   \n",counter, a, Ve[s],Ve[d],Ve[i],Ve[j]);\
+                    }\
+                    strcpy((var+counter*40),str);\
+                    counter ++;\
+                    Total_number_of_X_asdij ++;\
+                }\
+            }\
+        }\
+    }
+//                    printf("%08ld Xs%02dd%02d-i%02dj%02d   \n", counter, Ve[s],Ve[d],Ve[i],Ve[j]);\
+
+/*
+// NICT 2018 September Used as delta_(i,j)^a, where i,j are included in the set of EPOC nodes, "a" is included in the set of carrier_customer_id(s).
+#define AAA    Total_number_of_Asda = 0;\
+    Start_number_of_Asda = counter;\
+    for (node_pair_id = 0; node_pair_id < Total_number_of_paths; node_pair_id ++)\
+    {\
+        i = path_source[node_pair_id]; \
+        j = path_dest[node_pair_id]; \
+        for (a = 0; a < Total_number_of_carriers; a++)\
+        {\
+            if(Ve[i] < Ve[j])\
+            {\
+                pcurrent_var = Get_VarID_A(i,j,a);\
+                *pcurrent_var = counter;\
+                sprintf(str,"As%02dd%02d-a%02d      ", i,j,a);\
+                if(debug == 1) \
+                {\
+                    printf("VARS: %08ld Ai%02dj%02d-a%02d\n", counter, i,j,a);\
+                }\
+                strcpy((var+counter*40),str);\
+                counter ++;\
+                Total_number_of_Asda ++;\
+            }else if(Ve[i] > Ve[j])\
+            {\
+                pcurrent_var = Get_VarID_A(j,i,a);\
+                *pcurrent_var = counter;\
+                sprintf(str,"As%02dd%02d-a%02d      ", j,i,a);\
+                if(debug == 1) \
+                {\
+                    printf("VARS: %08ld Ai%02dj%02d-a%02d\n", counter, j,i,a);\
+                }\
+                strcpy((var+counter*40),str);\
+                counter ++;\
+                Total_number_of_Asda ++;\
+              }\
+        }\
+    }
+    */
+// NICT 2018 September Used as delta_(i,j)^a, where i,j are included in the set of EPOC nodes, "a" is included in the set of carrier_customer_id(s).
+//!!!!!!!!!! the following i and j are the EPOC node source dest id
+//In fact D ij,a, i and j should use the EPOC node id,and will be mapped to edge node Vpe[i] and Vpe[j]
+//For easy reading we present them with the underlying optical node ID.
+
+//NICT 2022, DCPs, add a new dimension "a", indicating the demand for other carriers. Meanwhile, since only two carriers are considered in the current version, only the variable name reflecting "a", the code is not changed yet. While, it is sufficient now. TODO: change the code to support selection of more than one counterpart carriers' lightpath supports. e.g., carrier B, C, etc.
+
+#define DDD    Total_number_of_Delta_ija = 0;\
+    Start_number_of_Delta_ija = counter;\
+    for (i = 0; i < Np; i++) \
+    { \
+        for (j = i + 1; j < Np; j++)\
+        { \
+            for (a = 0; a < A; a ++)\
+            {\
+                if( is_feasible_to_Buy_EPOC_lighpath[i][j][a]) \
+                {\
+                              pcurrent_var = Get_VarID_D(Vpe[i], Vpe[j], a);\
+                              *pcurrent_var = counter;\
+                              sprintf(str,"Di%02dj%02d-a%02d      ", Vp[i], Vp[j], a);\
+                              if(debug == 1) \
+                              {\
+                                   printf("VARS: %08ld Di%02dj%02d-a%02d\n", *(Get_VarID_D(Vpe[i], Vpe[j], a)), Vp[i], Vp[j], a);\
+                              }\
+                              strcpy((var+counter*40),str);\
+                              counter ++;\
+                              Total_number_of_Delta_ija ++;\
+                }\
+            }\
+         }\
+    }
+
+// 	  	printf("%08ld As%02dd%02d-a%02d     \n",counter, Ve[s],Ve[d],Ve[a]);\
+
+//Used B_{mn}
+#define BBB     Total_number_of_Bmn = 0;\
+    Start_number_of_Bmn = counter;\
+    for (node_pair_id = 0; node_pair_id < Total_number_of_trial; node_pair_id ++)\
+    {\
+        m = test_m[node_pair_id]; \
+        n = test_n[node_pair_id]; \
+        if(Link[m][n] > 0)\
+	{\
+        pcurrent_var = Get_VarID_B(V[m],V[n]);\
+        *pcurrent_var = counter;\
+        sprintf(str,"Bm%02dn%02d   ", V[m],V[n]);\
+        if(debug == 1) \
+        {\
+           printf("VARS: %08ld Bm%02dn%02d   \n",counter, m,n);\
+        }\
+	strcpy((var+counter*40),str);\
+        counter ++;\
+        Total_number_of_Bmn ++;\
+        }\
+    }
+//         printf("%08ld Bm%02dn%02d   \n", counter, m,n);\
+
+//Used  alpha^{sd}
+//! Casd, sd are the number of edge nodes (smaller than the optical node set, to save the memory), for easy reading, we mapped sd edge node id to the underlying optical node id.
+
+#define CCC         Total_number_of_Casd = 0;\
+    Start_number_of_Casd = counter;    \
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)\
+    {\
+        s = source[node_pair_id];  \
+        d = dest[node_pair_id]; \
+        a = customer_carrier_customer_id[node_pair_id];\
+        pcurrent_var = Get_VarID_C(a,s,d);\
+        *pcurrent_var = counter;\
+        sprintf(str,"Ca%02ds%02dd%02d", a, Ve[s],Ve[d]);\
+        if(debug == 1) \
+        {\
+            printf("VARS: %08ld Ca%02ds%02dd%02d\n", counter, a, Ve[s],Ve[d]);\
+        }\
+        strcpy((var+counter*40),str);\
+        counter ++;\
+        Total_number_of_Casd ++;\
+    }
+
+
+//Used  u_b
+#define UUU         Total_number_of_Ub = 0;\
+    Start_number_of_Ub = counter;    \
+    for (b = 0; b < BN; b ++)\
+    {\
+        pcurrent_var = Get_VarID_U(Vb[b]);\
+        *pcurrent_var = counter;\
+        sprintf(str,"Ub%02d", Vb[b]);\
+        if(debug == 1) \
+        {\
+            printf("VARS: %08ld Ub%02d\n", counter, Vb[b]);\
+        }\
+        strcpy((var+counter*40),str);\
+        counter ++;\
+        Total_number_of_Ub ++;\
+    }
+
+// Used Vzwij
+#define VVV    Total_number_of_Vzwij = 0;\
+    Start_number_of_Vzwij = counter;\
+    for (z = 0; z < Z; z ++)\
+    for (c = 0; c < C; c ++)\
+    {\
+         for (w = lambda_start; w < lambda_end; w ++)\
+         {\
+             for (i = 0; i < Ne; i ++)\
+             {\
+                 for (j = 0; j < Ne; j ++) \
+                 {\
+                        if( \
+                            (i != j) && (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0) \
+                            &&\
+                            !(\
+                            is_In_Outside_Edge_Node_Set(i) \
+                            && \
+                            is_In_Inside_Edge_Node_Set(j) \
+                            ) \
+                            && \
+                            !(\
+                            is_In_Outside_Edge_Node_Set(j) \
+                            && \
+                            is_In_Inside_Edge_Node_Set(i) \
+                            ) \
+                            && \
+                            is_feasible_lightpath[i][j] == 1 \
+                        )\
+                        {\
+                            pcurrent_var = Get_VarID_V(z,w,i,j);\
+                            *pcurrent_var = counter;\
+                            sprintf(str,"Vz%02dw%02d-i%02dj%02d", z, w, Ve[i], Ve[j]);\
+                            if(debug == 1) \
+                            {\
+                                printf("VARS: %08ld Vz%02dw%02d-i%02dj%02d\n", counter, z, w, Ve[i], Ve[j]);\
+                            }\
+                            strcpy((var+counter*40),str);\
+                            counter ++;\
+                            Total_number_of_Vzwij ++;\
+                        }\
+                    }\
+            }\
+        }\
+     }
+
+//Used  o_{ij} NICT 20210831
+//! o_{ij}, i,j are the number of edge nodes (smaller than the optical node set, to save the memory), for easy reading, we mapped ij edge node id to the underlying optical node id.
+
+#define OOO         Total_number_of_Oija = 0;\
+    Start_number_of_Oija = counter;    \
+    for (node_pair_id = 0; node_pair_id < Total_number_of_lightpath_requests; node_pair_id ++)\
+    {\
+        i = lightpath_support_source[node_pair_id];\
+        j = lightpath_support_dest[node_pair_id];\
+        a = lightpath_support_customer_carrier_customer_id[node_pair_id];\
+        if( \
+            (F_i[Ve[i]] > 0 &&  F_i[Ve[j]] > 0) \
+            &&\
+            !(\
+            is_In_Outside_Edge_Node_Set(i) \
+            && \
+            is_In_Inside_Edge_Node_Set(j) \
+            ) \
+            && \
+            !(\
+            is_In_Outside_Edge_Node_Set(j) \
+            && \
+            is_In_Inside_Edge_Node_Set(i) \
+            ) \
+            && \
+            is_feasible_lightpath[i][j] == 1 \
+            && \
+            is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0\
+        )\
+        {\
+            pcurrent_var = Get_VarID_O(i,j,a);\
+            *pcurrent_var = counter;\
+            sprintf(str,"Oi%02dj%02da%02d", Ve[i],Ve[j],a);\
+            if(debug == 1) \
+            {\
+                printf("VARS: %08ld Oi%02dj%02da%02d\n", counter, Ve[i],Ve[j],a);\
+            }\
+            strcpy((var+counter*40),str);\
+            counter ++;\
+            Total_number_of_Oija ++;\
+        }\
+    }
+
+
+//printf("%08ld Oi%02dj%02da%02d\n", counter, Ve[i],Ve[j],a);\
+
+
+#define MAX_N 50
+#define MAX_Ne 50
+#define MAX_Np 50 //EPOC
+#define MAX_C 3
+#define MAX_W 16
+//NICT2022 DCPs
+#define MAX_Z 1 //NICT2022 Concurrent DCPs, Zeta "Z" is added denoting the maximum number of supported multiple lightpaths between the edge node pair (i, j), here Z is set 2, to redeuce the scale of the entire CSPT ILP problem. Target: ECCO2022
+//NICT2022 DCPs
+
+#define MAX_VAR 3000000  //columns #
+#define MAX_CONSTRAINT 3000000  //rows #
+#define MAX_REQUEST 300 // max num of IP over WDM connections
+#define MAX_TRIAL 70 // max number of recovery segments
+#define MAX_A 10 //including DCI customers NICT 20210831, 3// NICT 2022 DCPs. To support multiple DCPs, A is changed from 3 (two carriers, one DCP) to 4 (two carriers, two DCPs). 
+#define MAX_PATH  200
+#define MAX_LIGHTPATH_SUPPORT 200 //NICT 20210831 including DC daily service lightpaths requests and emergency lightpath supports to either DC and counterpart carriers
+
+#define LATENCY 20 //NICT 20210917 ESEN+DCI, TODO: count the true latency in travsered lightpaths.
+#define DCP_ID 2
+
+#define BIGNUM 1000000
+#define BLOCK_LEADTIME 999
+#define SMALL 0.5
+#define UPPER_LIMIT_SUPPORT 10 //NICT 20220721
+struct SSolution_Node {
+    int source;
+    int dest;
+    int wavelength;
+    int path_id;
+    int carrier_customer_id;
+    int value;
+    SSolution_Node * pNext_Solution_Node;
+};
+struct SFiber_Link_Recovery_Task {
+    int total_number_of_recovery_tasks;
+    int source;
+    int dest;
+    int fiber_link_recovery_matrix[MAX_N][MAX_N];
+    int carrier_customer_id;
+    int value;
+    int role;
+    int sell_buy_deadline_matrix[MAX_A][MAX_A];
+};
+
+struct SSegment_Recovery_Task {
+    int total_number_of_recovery_tasks;
+    int source;
+    int dest;
+    int fiber_link_recovery_matrix[MAX_N][MAX_N];
+    int carrier_customer_id;
+    int value;
+    int role;
+    int sell_buy_deadline_matrix[MAX_A][MAX_A];
+};
+
+
+int Ve[MAX_Ne];// from Edge node number to optical Node number
+int Vp[MAX_Np]; //EPOC from EPOC node number to optical Node number
+int Vpe[MAX_Np]; //EPOC edge from EPOC node number to Edge node number
+int Vep[MAX_Ne]; //Edge from Edge node number to EPOC node number
+
+
+//NICT 20210831
+int Voe[MAX_N]; //from optical node number to Edge node number
+int Vop[MAX_N]; //from optical node number to ESEN node number
+
+int Vb[MAX_Ne];
+int V[MAX_N];
+int is_EPOC_node[MAX_Ne];
+
+
+int S_D_Matrix[MAX_Ne][MAX_Ne];
+int EPOC_Matrix[MAX_Ne][MAX_Ne];
+int Order_Request[MAX_Np][MAX_Np];
+
+int source[MAX_REQUEST];
+int dest[MAX_REQUEST];
+int weight[MAX_REQUEST];
+int customer_carrier_customer_id[MAX_REQUEST]; // NICT 2022 DCPs
+
+
+int customer_traffic_request_source[MAX_REQUEST];
+int customer_traffic_request_dest[MAX_REQUEST];
+int customer_traffic_request_weight[MAX_REQUEST];
+int customer_traffic_request_volume[MAX_REQUEST];
+int customer_traffic_request_max_volume[MAX_REQUEST];
+int customer_traffic_request_min_volume[MAX_REQUEST];
+int customer_traffic_request_priority[MAX_REQUEST];
+int customer_traffic_request_is_esen[MAX_REQUEST];
+
+int customer_traffic_request_customer_carrier_customer_id[MAX_REQUEST];
+
+int lightpath_support_source[MAX_LIGHTPATH_SUPPORT];
+int lightpath_support_dest[MAX_LIGHTPATH_SUPPORT];
+int lightpath_support_customer_carrier_customer_id[MAX_LIGHTPATH_SUPPORT];
+int lightpath_support_weight[MAX_LIGHTPATH_SUPPORT];
+int lightpath_support_is_esen[MAX_LIGHTPATH_SUPPORT];
+
+int given_lightpath_support_i_source[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_i_dest[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_i_customer_carrier_customer_id[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_i_weight[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_i_amount[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_i_is_esen[MAX_LIGHTPATH_SUPPORT];
+
+int given_lightpath_support_II_source[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_II_dest[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_II_customer_carrier_customer_id[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_II_weight[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_II_amount[MAX_LIGHTPATH_SUPPORT];
+int given_lightpath_support_II_is_esen[MAX_LIGHTPATH_SUPPORT];
+
+
+int customer_lightpath_support_source[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_dest[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_customer_carrier_customer_id[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_weight[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_amount[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_max_amount[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_min_amount[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_priority[MAX_LIGHTPATH_SUPPORT];
+int customer_lightpath_support_is_esen[MAX_LIGHTPATH_SUPPORT];
+
+int path_source[MAX_PATH];
+int path_dest[MAX_PATH];
+
+
+int Traffic_Matrix[MAX_A][MAX_Ne][MAX_Ne];
+//NICT2022 concurrent DCPs ECOC2022
+//int Traffic_Matrix[MAX_Ne][MAX_Ne];
+
+int In_out_source[MAX_REQUEST];
+int In_out_dest[MAX_REQUEST];
+int In_out_customer_carrier_customer_id[MAX_REQUEST];//NICT2022 concurrent DCPs ECOC2022
+
+int Capacity_of_Lightpath;
+int Path_Cost[MAX_Ne][MAX_Ne][MAX_A];
+int Path_Price[MAX_Ne][MAX_Ne][MAX_A];
+
+int EPOC_Path_Cost[MAX_Np][MAX_Np][MAX_A];
+int EPOC_Path_Price[MAX_Np][MAX_Np][MAX_A];
+
+int EPOC_Path_Normal_Price[MAX_Np][MAX_Np][MAX_A];
+
+int is_test_set[MAX_N][MAX_N];
+int test_m[MAX_TRIAL];
+int test_n[MAX_TRIAL];
+int test_weight[MAX_TRIAL];
+
+int Link_Recovery_Cost[MAX_N][MAX_N];
+
+int is_feasible_lightpath[MAX_Ne][MAX_Ne];
+int is_feasible_EPOC_lighpath[MAX_Np][MAX_Np];
+int is_feasible_to_Buy_EPOC_lighpath[MAX_Np][MAX_Np][MAX_A];
+int is_Required_to_Sell_EPOC_Lightpath[MAX_Np][MAX_Np];
+int is_Required_to_Sell_Lightpath[MAX_Ne][MAX_Ne]; //NICT 20210831
+int is_Required_to_Sell_Lightpath_to_Customer_Carrier[MAX_Ne][MAX_Ne][MAX_A]; //NICT 20210831
+int is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[MAX_Ne][MAX_Ne];  //NICT 20210831
+int is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[MAX_Ne][MAX_Ne][MAX_A];  //NICT 20210831
+int is_Feasible_to_Sell_Connection[MAX_Ne][MAX_Ne];  //NICT 20210831
+
+int is_Given_Lightpath_Support_i[MAX_Ne][MAX_Ne]; //NICT 20210831
+int is_Given_Lightpath_Support_i_By_Carrier[MAX_Ne][MAX_Ne][MAX_A]; //NICT 20210831
+
+int is_Given_Lightpath_Support_II[MAX_Ne][MAX_Ne]; //NICT 20210831
+int is_Given_Lightpath_Support_II_By_Carrier[MAX_Ne][MAX_Ne][MAX_A]; //NICT 20210831
+
+
+int is_MUST_Recovery_Bmn_solution[MAX_N][MAX_N];
+
+
+int is_Original_Customer_Request[MAX_A][MAX_Ne][MAX_Ne];//NICT2022 concurrent DCPs ECOC2022
+int is_Original_Customer_Request_is_esen[MAX_A][MAX_Ne][MAX_Ne];//NICT2022 concurrent DCPs ECOC2022
+
+int inter_test_m[MAX_TRIAL];
+int inter_test_n[MAX_TRIAL];
+int inter_test_weight[MAX_TRIAL];
+
+int degree_limit[MAX_N];
+int F_c_w_i[MAX_C][MAX_W][MAX_N];
+int F_i[MAX_N];
+int U_w_m_n[MAX_W][MAX_N][MAX_N];
+int Link[MAX_N][MAX_N];
+
+int N;
+int Ne;
+int Np;//EPOC
+int C;
+int W;
+int A;
+int BN;
+//NICT2022 DCPs
+int Z; //NICT2022 Concurrent DCPs, Zeta "Z" is added denoting the maximum number of supported multiple lightpaths between the edge node pair (i, j), here Z is set 2, to redeuce the scale of the entire CSPT ILP problem. Target: ECCO2022
+//NICT2022 DCPs
+
+int Total_number_of_trial;
+int Total_number_of_inter_trial;
+int Total_number_of_requests;
+int Total_number_of_requests_outside;
+int Total_number_of_border_node;
+int Total_number_of_carriers = 0;
+int Total_number_of_carriers_and_customers = 0;
+int Total_number_of_paths = 0;
+int Total_number_of_lightpath_requests = 0;
+int Total_number_of_customer_connection_requests = 0;
+int Total_number_of_customer_lightpath_requests = 0;
+int Total_number_of_original_customer_connection_requests = 0;
+
+int Total_number_of_lightpath_supports = 0;
+int Total_number_of_Buy_lightpath_supports_i = 0;
+int Total_number_of_Buy_lightpath_supports_II = 0;
+int Total_number_of_Sell_lightpath_supports_i = 0;
+int Total_number_of_Sell_lightpath_supports_II = 0;
+
+int Total_number_of_fiber_link_recovery_task = 0;
+int Total_number_of_segment_recovery_task = 0;
+
+int Total_number_of_satisfied_requests = 0;
+int Total_number_of_fiber_link_must_recovery_solutions = 0;
+
+int Inner_Node_First_Node_ID;
+
+long int* pVarID_P;
+long int* pVarID_M;//MMM is introduced to forbiden diverse routes. Without MMM (binarry) accompany with P, the RWA may create more paths between (i, j) with different routes.
+
+
+long int* pVarID_R;
+long int* pVarID_Y;
+long int* pVarID_X;
+long int* pVarID_D;
+long int* pVarID_A;
+long int* pVarID_B;
+long int* pVarID_C;
+long int* pVarID_U;
+long int* pVarID_V;
+long int* pVarID_O;
+
+char* var;
+long int Total_number_of_vars = 0;
+long int Total_number_of_constraint = 0;
+long int Total_number_of_integer_vars = 0;
+
+long int Total_number_of_Psdzcwijmn = 0;
+long int Total_number_of_Mijmn = 0; //NICT 2022 DCPs, concurrent DCPs ECOC2022
+long int Total_number_of_Bmn = 0;
+long int Total_number_of_Ub = 0;
+long int Total_number_of_Vzwij = 0;
+long int Total_number_of_Casd = 0;
+long int Total_number_of_X_asdij = 0; //NICT 2022 DCPs, add customer id a in lambda_{ij}^{sd, a}
+long int Total_number_of_Delta_ija = 0;
+long int Total_number_of_Oija = 0;
+
+long int Total_number_of_Rsdcwija = 0;
+long int Total_number_of_Asda = 0;
+long int Total_number_of_Ysdcwij = 0;
+
+
+long int Start_number_of_Psdzcwijmn = 0;
+long int Start_number_of_Mijmn = 0; //NICT2022 concurrent DCPs, ECOC2022
+
+long int Start_number_of_Bmn = 0;
+long int Start_number_of_Ub = 0;
+long int Start_number_of_Vzwij = 0;
+long int Start_number_of_Casd = 0;
+long int Start_number_of_X_asdij = 0;
+long int Start_number_of_Delta_ija = 0;
+long int Start_number_of_Oija = 0;
+
+long int Start_number_of_Rsdcwija = 0;
+long int Start_number_of_Ysdcwij = 0;
+long int Start_number_of_Asda = 0;
+
+
+long int End_number_of_Psdzcwijmn = 0;
+long int End_number_of_Mijmn = 0; //NICT 2022 concurrent DCPs, ECOC2022
+
+long int End_number_of_Bmn = 0;
+long int End_number_of_Ub = 0;
+long int End_number_of_Vzwij = 0;
+long int End_number_of_Casd = 0;
+long int End_number_of_X_asdij = 0;
+long int End_number_of_Delta_ija = 0;
+long int End_number_of_Oija = 0;
+
+long int End_number_of_Rsdcwija = 0;
+long int End_number_of_Ysdcwij = 0;
+long int End_number_of_Asda = 0;
+
+
+FILE * fconstraints;
+FILE * fvariables;
+FILE * frhs;
+FILE * fbounds;
+
+FILE * fconstraints1;
+FILE * fvariables1;
+FILE * frhs1;
+FILE * fbounds1;
+
+FILE * fconstraints2;
+FILE * fvariables2;
+FILE * frhs2;
+FILE * fbounds2;
+
+FILE * fconstraints3;
+FILE * fvariables3;
+FILE * frhs3;
+FILE * fbounds3;
+
+FILE * fconstraints4;
+FILE * fvariables4;
+FILE * frhs4;
+FILE * fbounds4;
+
+
+FILE * fconstraints5;
+FILE * fvariables5;
+FILE * frhs5;
+FILE * fbounds5;
+
+FILE * fconstraints6;
+FILE * fvariables6;
+FILE * frhs6;
+FILE * fbounds6;
+
+FILE * fconstraints7;
+FILE * fvariables7;
+FILE * frhs7;
+FILE * fbounds7;
+
+FILE * fconstraints8;
+FILE * fvariables8;
+FILE * frhs8;
+FILE * fbounds8;
+
+FILE * frequest;
+FILE * ftransponder1;
+FILE * ftransponder2;
+FILE * fwavelength;
+
+int lambda_start, lambda_end;
+int self_carrier_customer_id = -1;
+
+int Requests_Need_Recovery_First[MAX_N][MAX_N];
+int Lightpath_Need_Recovery_First[MAX_N][MAX_N];
+//int Lightpath_Need_Recovery_First[MAX_N][MAX_N][MAX_W][MAX_Z];
+int Customer_Traffic_Request[MAX_N][MAX_N];
+int Var_Beta_mn[MAX_N][MAX_N];
+int Var_Alpha_asd[MAX_A][MAX_N][MAX_N];
+
+
+
+SSolution_Node Var_P_mnijwz[MAX_N][MAX_N];
+SSolution_Node Var_M_mnij[MAX_N][MAX_N];
+SSolution_Node Var_Lambda_ijasd[MAX_N][MAX_N];
+
+SSolution_Node Var_O_ija[MAX_N][MAX_N];
+SSolution_Node Var_D_ija[MAX_N][MAX_N];
+SSolution_Node counterpart_carrier_Var_D_ija[MAX_A][MAX_N][MAX_N];
+
+SFiber_Link_Recovery_Task Lightpath_Fiber_Link_Recovery_List[MAX_N][MAX_N];
+SFiber_Link_Recovery_Task End_to_End_Lightpath_Connection_Recovery_List[MAX_A][MAX_N][MAX_N];
+
+SFiber_Link_Recovery_Task Fiber_Recovery_Task_Sharing[MAX_N][MAX_N];
+
+SSegment_Recovery_Task Segment_Recovery_Task_Sharing[MAX_N][MAX_N];
+
+void Analysis_Requests_Need_Recovery_First();
+void Analysis_Requests_Need_Recovery_After_PSMT();
+
+void Read_Var_Beta_mn();
+void Read_Var_Alpha_asd();
+void Read_Var_P_mnijwz();
+void Read_Var_M_mnij();
+void Read_Var_Lambda_ijasd();
+void Read_Var_O_ija();
+void Read_Var_D_ija();
+void Read_Var_Counterpart_Carrier_D_ija();
+void Read_TSMT_Schedule();
+void Read_PSMT_Deadline_Schedule();
+void Read_PNE_Topology_Conf(); //NICT 20230911
+
+void Print_Var_Beta_mn();
+void Print_Var_Alpha_asd();
+void Print_Var_P_mnijwz();
+void Print_Var_M_mnij();
+
+void Print_Var_Lambda_ijasd();
+void Print_Var_O_ija();
+void Print_Var_D_ija();
+
+void Output_Customer_IP_over_WDM_Connection_Request_Results();
+
+void Output_Customer_Lightpath_Support_Request_Results();
+
+void Output_Total_Cost_Income();
+
+float val;
+
+void Read_PNE_Topology_Conf() //NICT 20230911
+{
+       int s,d,c,w,i,j,m,n,k,a;
+    int node_pair_id;
+    int ii,jj;
+    int R,B;
+    long int size;
+    int counter = 0;
+    int case_counter;
+    int instance_counter;
+
+    FILE * fconf;
+    FILE * flink;
+    FILE * fsolution;
+
+    char str[30];
+    char line[256];
+    char temp[10240];
+    char spath[1024];
+    char conf_filename[1024];
+    char solution_filename[1024];
+    char price_filename[1024];
+    char task_filename[1024];
+
+    
+/*
+    for(ii =0; ii < MAX_N; ii++)
+    {
+        for(jj=0; jj < MAX_N; jj++)
+        {
+            is_PNE_segment[ii][jj] = 0;
+            Link[ii][jj] = 0;
+        }
+    }
+*/
+    if ((fconf = fopen("./pne.conf","r")) == NULL)
+    {
+        printf("Not find PNE conf.txt.\n");
+        exit(0);
+    }
+
+     fscanf(fconf, "Np#=%d Carrier#=%d Carrier_Customer#=%d\n", &Np, &Total_number_of_carriers, &Total_number_of_carriers_and_customers);
+     A = Total_number_of_carriers_and_customers;
+    
+     fclose(fconf);
+  
+     /*
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "LINK") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < Np; m ++)
+            {
+                for (n = 0; n < Np; n ++)
+                {
+                    fscanf(fconf,"%d, ", &a);
+                    Link[Vp[m]][Vp[n]] = a;
+                    if(a == 0)
+                    {
+                        is_PNE_segment[Vp[m]][Vp[n]] = 1;
+                    }
+                }
+                fscanf(fconf,"\n");
+            }
+            fscanf(fconf,"\n");
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+    */
+ 
+}
+
+
+
+void Read_Var_Beta_mn()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int a, b, mm, nn, ii, jj, ss, dd, ww, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = 0; nn < N; nn ++)
+        {
+            Var_Beta_mn[mm][nn] = 0;
+            Fiber_Recovery_Task_Sharing[mm][nn].source = mm;
+            Fiber_Recovery_Task_Sharing[mm][nn].dest = mm;
+            Fiber_Recovery_Task_Sharing[mm][nn].carrier_customer_id = -1;
+            Fiber_Recovery_Task_Sharing[mm][nn].role = -1;
+            for(a = 0; a < A; a++)
+            {
+                for(b = 0; b < A; b++)
+                {
+                    Fiber_Recovery_Task_Sharing[mm][nn].sell_buy_deadline_matrix[a][b] = 0;
+                }
+            }
+        }
+    }
+
+    if ((fconf = fopen("./Bmn_solution.temp","r")) == NULL)
+    {
+        printf("Not find Bmn_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+    Total_number_of_fiber_link_recovery_task = 0;// Total_number_of_solutions;
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Bm%02dn%02d %s\n", variable_id, &mm, &nn, variable_value);
+
+        val = atof (variable_value);
+        if(val > SMALL)
+        {
+            Total_number_of_fiber_link_recovery_task ++;
+
+            if (mm > nn)
+            {
+                temp = mm;
+                mm = nn;
+                nn = temp;
+            }
+            Var_Beta_mn[mm][nn] = 1;
+            Fiber_Recovery_Task_Sharing[mm][nn].carrier_customer_id = self_carrier_customer_id;
+            Fiber_Recovery_Task_Sharing[mm][nn].role = 0; //0: self recovery, 1: sell, 2: buy
+
+        }
+    }
+
+    fclose(fconf);
+}
+
+void Read_Var_Alpha_asd()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int aa, mm, nn, ii, jj, ss, dd, ww, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for (aa = 0; aa < A; aa ++)
+    {
+        for ( ss = 0; ss < N; ss ++)
+        {
+            for (dd = 0; dd < N; dd ++)
+            {
+                Var_Alpha_asd[aa][ss][dd] = 0;
+            }
+        }
+    }
+
+    if ((fconf = fopen("./Csd_solution.temp","r")) == NULL)
+    {
+        printf("Not find Casd_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Ca%02ds%02dd%02d %s\n", variable_id, &aa, &ss, &dd, variable_value);
+        val = atof (variable_value);
+        if(val > SMALL)
+        {
+
+            if (ss > dd)
+            {
+                temp = ss;
+                ss = dd;
+                dd = temp;
+            }
+
+            Var_Alpha_asd[aa][ss][dd] = 1;
+        }
+    }
+
+    fclose(fconf);
+}
+
+
+void Read_Var_P_mnijwz()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, cc, temp, zz;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = 0; nn < N; nn ++)
+        {
+            Var_P_mnijwz[mm][nn].source = -1;
+            Var_P_mnijwz[mm][nn].dest = -1;
+            Var_P_mnijwz[mm][nn].wavelength = -1;
+            Var_P_mnijwz[mm][nn].path_id = -1;
+            Var_P_mnijwz[mm][nn].pNext_Solution_Node = NULL;
+        }
+    }
+
+    if ((fconf = fopen("./Pmnijw_solution.temp","r")) == NULL)
+    {
+        printf("Not find Pmnijw_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d %s\n", variable_id, &ss, &dd, &zz, &cc, &ww, &ii, &jj, &mm, &nn, variable_value);
+        val = atof (variable_value);
+        if(val > SMALL)
+        {
+
+
+            if (mm > nn)
+            {
+                temp = mm;
+                mm = nn;
+                nn = temp;
+            }
+
+            if (ii > jj)
+            {
+                temp = ii;
+                ii = jj;
+                jj = temp;
+            }
+
+            if (Var_P_mnijwz[mm][nn].source != -1)
+            {
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = new SSolution_Node;
+                ptemp_solution_node->source = ii;
+                ptemp_solution_node->dest = jj;
+                ptemp_solution_node->wavelength = ww;
+                ptemp_solution_node->path_id = zz;
+                ptemp_solution_node->pNext_Solution_Node = Var_P_mnijwz[mm][nn].pNext_Solution_Node;
+                Var_P_mnijwz[mm][nn].pNext_Solution_Node = ptemp_solution_node;
+            } else {
+                Var_P_mnijwz[mm][nn].source = ii;
+                Var_P_mnijwz[mm][nn].dest = jj;
+                Var_P_mnijwz[mm][nn].wavelength = ww;
+                Var_P_mnijwz[mm][nn].path_id = zz;
+            }
+        }
+    }
+    fclose(fconf);
+}
+
+void Read_Var_M_mnij()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, cc, temp, zz;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = 0; nn < N; nn ++)
+        {
+            Var_M_mnij[mm][nn].source = -1;
+            Var_M_mnij[mm][nn].dest = -1;
+            Var_M_mnij[mm][nn].wavelength = -1;
+            Var_M_mnij[mm][nn].path_id = -1;
+            Var_M_mnij[mm][nn].pNext_Solution_Node = NULL;
+        }
+    }
+
+    if ((fconf = fopen("./Mijmn_solution.temp","r")) == NULL)
+    {
+        printf("Not find Mijmn_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Mi%02dj%02d-m%02dn%02d %s\n", variable_id, &ii, &jj, &mm, &nn, variable_value);
+        val = atof (variable_value);
+        if(val > SMALL)
+        {
+
+
+            if (mm > nn)
+            {
+                temp = mm;
+                mm = nn;
+                nn = temp;
+            }
+
+            if (ii > jj)
+            {
+                temp = ii;
+                ii = jj;
+                jj = temp;
+            }
+
+            Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source = ii;
+            Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest = jj;
+
+            //No need herein. if(Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] != 1)
+            //No need herein.    Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].total_number_of_recovery_tasks ++;
+
+            if(Var_Beta_mn[mm][nn] == 1)
+            {
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] = 1; //means lightpath (i, j) traverses segment (m, n) now it is not clear, (m, n) needs to recover or not. This will be analysised in the following Analysis_Requests_Need_Recovery_First() function.
+            }else {
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] = 0;
+            }
+            if (Var_M_mnij[mm][nn].source != -1)
+            {
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = new SSolution_Node;
+                ptemp_solution_node->source = ii;
+                ptemp_solution_node->dest = jj;
+                // ptemp_solution_node->wavelength = ww;
+                // ptemp_solution_node->path_id = zz;
+                ptemp_solution_node->pNext_Solution_Node = Var_M_mnij[mm][nn].pNext_Solution_Node;
+                Var_M_mnij[mm][nn].pNext_Solution_Node = ptemp_solution_node;
+            } else {
+                Var_M_mnij[mm][nn].source = ii;
+                Var_M_mnij[mm][nn].dest = jj;
+                // Var_M_mnij[mm][nn].wavelength = ww;
+                // Var_M_mnij[mm][nn].path_id = zz;
+            }
+        }
+    }
+    fclose(fconf);
+}
+
+void Read_Var_Lambda_ijasd()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int aa, mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = 0; jj < N; jj ++)
+        {
+            Var_Lambda_ijasd[ii][jj].source = -1;
+            Var_Lambda_ijasd[ii][jj].dest = -1;
+            Var_Lambda_ijasd[ii][jj].wavelength = -1;
+            Var_Lambda_ijasd[ii][jj].carrier_customer_id = -1;
+            Var_Lambda_ijasd[ii][jj].pNext_Solution_Node = NULL;
+        }
+    }
+
+    if ((fconf = fopen("./Xijsd_solution.temp","r")) == NULL)
+    {
+        printf("Not find Xijasd_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Xa%02ds%02dd%02d-i%02dj%02d %s\n", variable_id, &aa, &ss, &dd, &ii, &jj, variable_value);
+
+        val = atof (variable_value);
+        if(val > SMALL)
+        {
+
+            if (ii > jj)
+            {
+                temp = ii;
+                ii = jj;
+                jj = temp;
+            }
+
+            if (ss > dd)
+            {
+                temp = ss;
+                ss = dd;
+                dd = temp;
+            }
+
+            //Record the segment information for individual request. Same recording action in Oija_up_solution reading.
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ss]][Ve[dd]].carrier_customer_id = aa;
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ss]][Ve[dd]].source = ss;
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ss]][Ve[dd]].dest = dd;
+
+            if (Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source == -1 ||Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest == -1)
+            {
+                //Fatal error
+                printf("Need to first read the Mijmn_up_solution. Fatal error when read the Lambda solution in the Analysis_Requests_Need_Recovery_First.\n");
+                exit(0);
+            }
+
+            for (mm = 0; mm < N; mm ++)
+            {
+                for (nn = 0; nn < N; nn ++)
+                {
+
+                    if (Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] != -1)
+                    {
+                        End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ss]][Ve[dd]].fiber_link_recovery_matrix[mm][nn] = Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn];
+                    }
+                }
+            }
+
+            if (Var_Lambda_ijasd[ii][jj].source != -1)
+            {
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = new SSolution_Node;
+                ptemp_solution_node->source = ss;
+                ptemp_solution_node->dest = dd;
+                ptemp_solution_node->carrier_customer_id = aa;
+                ptemp_solution_node->wavelength = -1; //lambda_{ij}^{a,sd} has no information about wavelength. Here is not used.
+
+
+                ptemp_solution_node->pNext_Solution_Node = Var_Lambda_ijasd[ii][jj].pNext_Solution_Node;
+                Var_Lambda_ijasd[ii][jj].pNext_Solution_Node = ptemp_solution_node;
+            } else {
+                Var_Lambda_ijasd[ii][jj].source = ss;
+                Var_Lambda_ijasd[ii][jj].dest = dd;
+                Var_Lambda_ijasd[ii][jj].carrier_customer_id = aa;
+                Var_Lambda_ijasd[ii][jj].wavelength = -1;
+            }
+        }
+    }
+    fclose(fconf);
+}
+
+
+
+void Read_Var_O_ija()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int aa, mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    int amount;
+    float value;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = 0; jj < N; jj ++)
+        {
+            Var_O_ija[ii][jj].source = -1;
+            Var_O_ija[ii][jj].dest = -1;
+            Var_O_ija[ii][jj].wavelength = -1;
+            Var_O_ija[ii][jj].carrier_customer_id = -1;
+            Var_O_ija[ii][jj].value = -1;
+
+            Var_O_ija[ii][jj].pNext_Solution_Node = NULL;
+        }
+    }
+
+    if ((fconf = fopen("./Oija_solution.temp","r")) == NULL)
+    {
+        printf("Not find Oija_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Oi%02dj%02da%02d %f\n", variable_id, &ii, &jj, &aa, &value);
+
+        val = atof(variable_value);
+        amount = int (value + 0.5);
+
+        if(value > SMALL)// && (is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa] <= amount)) //If the satisfied ligthpaths amount is less than the demands, then count it as blocking. Otherwise count it as success.
+        {
+
+            amount = int (value + 0.5);
+
+            if (ii > jj)
+            {
+                temp = ii;
+                ii = jj;
+                jj = temp;
+            }
+
+
+            //Record the segment information for individual request. Same recording action in Oija_up_solution reading.
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ii]][Ve[jj]].carrier_customer_id = aa;
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ii]][Ve[jj]].source = ii;
+            End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ii]][Ve[jj]].dest = jj;
+
+            if (Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source == -1 ||Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest == -1)
+            {
+                //Fatal error
+                printf("Need to first read the Mijmn_up_solution. Fatal error when read the Oija solution in the Analysis_Requests_Need_Recovery_First.\n");
+                exit(0);
+            }
+
+            for (mm = 0; mm < N; mm ++)
+            {
+                for (nn = 0; nn < N; nn ++)
+                {
+
+                    if (Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] != -1)
+                    {
+                        End_to_End_Lightpath_Connection_Recovery_List[aa][Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn] = Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix[mm][nn];
+                    }
+                }
+            }
+
+
+            if (Var_O_ija[ii][jj].carrier_customer_id != -1)
+            {
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = new SSolution_Node;
+                ptemp_solution_node->carrier_customer_id = aa;
+                ptemp_solution_node->value = amount;
+                ptemp_solution_node->pNext_Solution_Node = Var_O_ija[ii][jj].pNext_Solution_Node;
+                Var_O_ija[ii][jj].pNext_Solution_Node = ptemp_solution_node;
+            } else {
+                Var_O_ija[ii][jj].carrier_customer_id = aa;
+                Var_O_ija[ii][jj].value = amount;
+
+            }
+        }
+    }
+    fclose(fconf);
+}
+
+
+void Read_TSMT_Schedule()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, temp;
+    int j, g;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    char file_name_str[1024];
+
+    int schedule, role_code, price;
+    char role[1024];
+
+    sprintf(file_name_str, "./tsmt_solution.temp");// self_carrier_customer_id);
+
+    if ((fconf = fopen(file_name_str,"r")) == NULL)
+    {
+//NICT 20250326
+       // printf("Not find tsmt_solution.temp.\n");
+        //    fclose(fconf);
+        //exit(0);
+    } else {
+
+        fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+
+        for (counter = 0; counter < Total_number_of_solutions; counter ++)
+        {
+            fscanf(fconf, "Bm%02dn%02d schedule %d %s %d price %d\n", &mm, &nn, &schedule, role, &role_code, &price);
+            Fiber_Recovery_Task_Sharing[mm][nn].role = role_code;
+        }
+
+        fclose(fconf);
+    }
+}
+
+
+
+
+void Read_PSMT_Deadline_Schedule()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, temp;
+    int j, g;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    char file_name_str[1024];
+
+    int schedule, role_code, price;
+    char role[1024];
+    char role_string[1024];
+    int old_schedule, new_schedule;
+    int my_id, counterpart_id;
+
+    sprintf(file_name_str, "./carrier_%d.psmt_solution.temp", self_carrier_customer_id);
+
+    if ((fconf = fopen(file_name_str,"r")) == NULL)
+    {
+//NICT 20250326
+//        printf("Not find tsmt_solution.temp.\n");
+        //    fclose(fconf);
+        //exit(0);
+    } else {
+
+        fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+
+        for (counter = 0; counter < Total_number_of_solutions; counter ++)
+        {
+            fscanf(fconf, "Seg_i%02dj%02d old_schedule %d new_schedule %d %s %d my_id %d counterpart_id %d price %d\n", &ii, &jj, &old_schedule, &new_schedule, role_string, &role_code, &my_id, &counterpart_id, &price);
+            
+                        
+            ii = Vp[ii];
+            jj = Vp[jj];
+            
+            Segment_Recovery_Task_Sharing[ii][jj].role = role_code;
+
+            if(role_code == 1)
+                Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[self_carrier_customer_id][counterpart_id] = new_schedule;
+            if(role_code == 2) //buyers
+            {
+                Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[counterpart_id][self_carrier_customer_id] = new_schedule;
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source = ii; 
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest = jj;
+                Lightpath_Need_Recovery_First[ii][jj] = 1;
+                Lightpath_Need_Recovery_First[jj][ii] = 1;
+            }
+
+            
+        }
+
+        fclose(fconf);
+    }
+}
+
+void Read_Var_Counterpart_Carrier_D_ija()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int a, mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int demander_carrier_id;
+    int counter;
+    int amount;
+    float value;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    char file_name_str[1024];
+
+    for(a = 0; a < A; a++)
+    {
+        for ( ii = 0; ii < N; ii ++)
+        {
+            for (jj = 0; jj < N; jj ++)
+            {
+                counterpart_carrier_Var_D_ija[a][ii][jj].source = ii;
+                counterpart_carrier_Var_D_ija[a][ii][jj].dest = jj;
+                counterpart_carrier_Var_D_ija[a][ii][jj].wavelength = -1;
+                counterpart_carrier_Var_D_ija[a][ii][jj].carrier_customer_id = -1;
+                counterpart_carrier_Var_D_ija[a][ii][jj].value = 0;
+                counterpart_carrier_Var_D_ija[a][ii][jj].pNext_Solution_Node = NULL;
+            }
+        }
+    }
+
+    for (demander_carrier_id = 0; demander_carrier_id < A; demander_carrier_id ++)
+    {
+        if(demander_carrier_id != self_carrier_customer_id)
+        {
+            
+            sprintf(file_name_str, "./carrier_%d.PNE_Dij_solution.temp", demander_carrier_id);
+            
+            if ((fconf = fopen(file_name_str,"r")) == NULL)
+            {
+//NICT 20250326
+//                printf("Not find counterpart_carrier %s.\n", file_name_str);
+                //    fclose(fconf);
+                //exit(0);
+            } else {
+                
+                fscanf(fconf, "%d\n", &Total_number_of_solutions);
+                for (counter = 0; counter < Total_number_of_solutions; counter ++)
+                {
+                    fscanf(fconf, "%s Di%02dj%02d-a%02d %f\n", variable_id, &ii, &jj, &a, &value);
+                    //val = atof (variable_value);
+                    if(value > SMALL)
+                    {
+                        amount = int (value + 0.5);
+                        ii = Vp[ii];
+                        jj = Vp[jj];
+                        
+                        if (ii > jj)
+                        {
+                            temp = ii;
+                            ii = jj;
+                            jj = temp;
+                        }
+                        counterpart_carrier_Var_D_ija[demander_carrier_id][ii][jj].source = ii;
+                        counterpart_carrier_Var_D_ija[demander_carrier_id][ii][jj].dest = jj;
+                        counterpart_carrier_Var_D_ija[demander_carrier_id][ii][jj].value = amount;
+                        counterpart_carrier_Var_D_ija[demander_carrier_id][ii][jj].carrier_customer_id = demander_carrier_id;
+                    }
+                }
+                fclose(fconf);
+            }
+        }
+    }
+}
+
+
+void Read_Var_D_ija()
+{
+    FILE * fconf;
+    FILE * fsolution;
+    int Total_number_of_solutions;
+    int a, mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    int amount;
+    float value;
+    char variable_id[1024];
+    char variable_value[1024];
+    char file_name_str[1024];
+    
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = 0; jj < N; jj ++)
+        {
+            Var_D_ija[ii][jj].source = -1;
+            Var_D_ija[ii][jj].dest = -1;
+            Var_D_ija[ii][jj].wavelength = -1;
+            Var_D_ija[ii][jj].carrier_customer_id = -1;
+            Var_D_ija[ii][jj].value = -1;
+
+            Var_D_ija[ii][jj].pNext_Solution_Node = NULL;
+        }
+    }
+
+    sprintf(file_name_str,"carrier_%d.PNE_Dij_solution.temp", self_carrier_customer_id);
+    if ((fsolution = fopen(file_name_str,"w")) == NULL)
+    {
+        printf("Cannot create %s.\n", file_name_str);
+        //    fclose(fconf);
+        exit(0);
+    }
+    
+    if ((fconf = fopen("./Dij_solution.temp","r")) == NULL)
+    {
+        printf("Not find Dij_solution.temp.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "%d\n", &Total_number_of_solutions);
+
+    fprintf(fsolution, "%d\n", Total_number_of_solutions);
+
+    for (counter = 0; counter < Total_number_of_solutions; counter ++)
+    {
+        fscanf(fconf, "%s Di%02dj%02d-a%02d %f\n", variable_id, &ii, &jj, &a, &value);
+        val = atof (variable_value);
+        if(value > SMALL)
+        {
+
+            amount = int (value + 0.5);
+
+            if (ii > jj)
+            {
+                temp = ii;
+                ii = jj;
+                jj = temp;
+            }
+            
+            fprintf(fsolution, "%s Di%02dj%02d-a%02d %f\n", variable_id, Vop[ii], Vop[jj], a, value);
+
+            Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source = ii;
+            Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest = jj;
+            //Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].fiber_link_recovery_matrix-> no action for concurrent DCPs
+            //TODO: we assume the lightpath_supports received from the counerpart carriers are with surviving resource. Hence, no need to recover.
+            //In the future this assumption can be further improved, say, complicated situations.
+
+            Var_D_ija[ii][jj].source = ii;
+            Var_D_ija[ii][jj].dest = jj;
+            Var_D_ija[ii][jj].value = amount;
+            Var_D_ija[ii][jj].carrier_customer_id = a;
+        }
+
+    }
+    fclose(fconf);
+    fclose(fsolution);
+}
+
+////////////////////
+
+void Print_Var_Beta_mn()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Var_Beta_mn[mm][nn] == 1)
+            {
+                printf("Bm%02dn%02d\n", mm, nn);
+            }
+        }
+    }
+}
+
+void Print_Var_Alpha_asd()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int aa, mm, nn, ii, jj, ss, dd, ww, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for (aa = 0; aa < A; aa ++)
+    {
+        for ( ss = 0; ss < N; ss ++)
+        {
+            for (dd = ss + 1; dd < N; dd ++)
+            {
+                if( Var_Alpha_asd[aa][ss][dd] == 1)
+                {
+                    printf("Ca%02ds%02dd%02d\n", aa, ss, dd);
+                }
+            }
+        }
+    }
+}
+
+
+void Print_Var_P_mnijwz()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, zz, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Var_P_mnijwz[mm][nn].source != -1)
+            {
+                printf("Pm%02dn%02d-i%02dj%02d-w%02dz%02d\n", mm, nn, Var_P_mnijwz[mm][nn].source, Var_P_mnijwz[mm][nn].dest, Var_P_mnijwz[mm][nn].wavelength, Var_P_mnijwz[mm][nn].path_id);
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_P_mnijwz[mm][nn].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    printf("Pm%02dn%02d-i%02dj%02d-w%02dz%02d\n", mm, nn, ptemp_solution_node->source, ptemp_solution_node->dest, ptemp_solution_node->wavelength, ptemp_solution_node->path_id);
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+}
+
+void Print_Var_M_mnij()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, zz, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Var_M_mnij[mm][nn].source != -1)
+            {
+                printf("Mi%02dj%02d-m%02dn%02d\n", Var_M_mnij[mm][nn].source, Var_M_mnij[mm][nn].dest, mm, nn);
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_M_mnij[mm][nn].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    printf("Mi%02dj%02d-m%02dn%02d\n", ptemp_solution_node->source, ptemp_solution_node->dest, mm, nn);
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+}
+
+void Print_Var_Lambda_ijasd()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int aa, mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            if( Var_Lambda_ijasd[ii][jj].source != -1)
+            {
+                printf("Xi%02dj%02d-a%02ds%02dd%02d\n", ii, jj, Var_Lambda_ijasd[ii][jj].carrier_customer_id, Var_Lambda_ijasd[ii][jj].source, Var_Lambda_ijasd[ii][jj].dest);
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_Lambda_ijasd[ii][jj].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    printf("Xi%02dj%02d-a%02ds%02dd%02d\n", ii, jj, ptemp_solution_node->carrier_customer_id, ptemp_solution_node->source, ptemp_solution_node->dest);
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+}
+
+
+void Print_Var_O_ija()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            if( Var_O_ija[ii][jj].carrier_customer_id != -1)
+            {
+                printf("Oi%02dj%02da%02d %d\n", ii, jj, Var_O_ija[ii][jj].carrier_customer_id, Var_O_ija[ii][jj].value);
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_O_ija[ii][jj].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    printf("Oi%02dj%02da%02d %d\n", ii, jj, ptemp_solution_node->carrier_customer_id, ptemp_solution_node->value);
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+}
+void Print_Var_D_ija()
+{
+    FILE * fconf;
+    int Total_number_of_solutions;
+    int mm, nn, ii, jj, ss, dd, ww, cc, temp;
+    int counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            if( Var_D_ija[ii][jj].value != -1)
+            {
+                printf("Di%02dj%02d-a%02d %d\n", ii, jj, Var_D_ija[ii][jj].carrier_customer_id, Var_D_ija[ii][jj].value);
+            }
+        }
+    }
+}
+void Analysis_Requests_Need_Recovery_After_PSMT()
+{
+    FILE * fconf;
+    FILE * fsolution;
+    
+    int Total_number_of_solutions;
+    
+    int mm, nn, ii, jj, ss, dd, ww, temp;
+    int i, j, g;
+    int a, b;
+    int id;
+    int is_esen;
+    int is_need_recovery;
+    int counter,counter2;
+    int request_counter, counterpart_carrier_request_counter, customer_request_counter;
+    char variable_id[1024];
+    char variable_value[1024];
+
+    char file_name_str[1024];
+
+    int schedule, role_code, price;
+    char role[1024];
+    char role_string[1024];
+    int old_schedule, new_schedule;
+    int my_id, counterpart_id;
+    
+    long int  Max_Bandwidth, Min_Bandwidth;
+    int Priority, lightpath_support_type;
+
+    
+    Total_number_of_Buy_lightpath_supports_II = 0;
+    Total_number_of_Sell_lightpath_supports_II = 0;
+    sprintf(file_name_str, "./carrier_%d.psmt_solution.temp", self_carrier_customer_id);
+    //After checking the PSMT task balancing and deadline-based rescheduling solution (there will be carrier_0/1/2.psmt_solution.temp generatred by PSMT), conduct the following process. This will be used to recreat a new CSPT ILP model to re-calculate the Fiber link recovery tasks, RWA, IP routing.
+    //1. Generate the given_carrier_lightpath_supports.txt file including the lightpath support (ii) for buying. say no need to recover therefore possibile reduce the number of fiber link recovery tasks.
+    //2. Within the original fiber link recovery task list where Beta_mn ==1, generate the MUST_Recovery_Bmn_solution.temp file, identifing the necessary fiber link recovery which MUST be recovered, namely, both that have to recover by carrier itself (not shared) and for selling.
+
+    for ( ii= 0; ii < N; ii ++)
+    {
+        for (jj = 0; jj < N; jj ++)
+        {
+            Segment_Recovery_Task_Sharing[ii][jj].source = ii;
+            Segment_Recovery_Task_Sharing[ii][jj].dest = jj;
+            Segment_Recovery_Task_Sharing[ii][jj].carrier_customer_id = -1;
+            Segment_Recovery_Task_Sharing[ii][jj].role = -1;
+            for(a = 0; a < A; a++)
+            {
+                for(b = 0; b < A; b++)
+                {
+                    Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[a][b] = 0;
+                }
+            }
+
+            for(mm = 0; mm < N; mm++)
+            {
+                for(nn = 0; nn < N; nn++)
+                {
+                    Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[mm][nn] = 0;
+                }
+            }
+
+        }
+    }
+    
+    
+    if ((fconf = fopen(file_name_str,"r")) == NULL)
+    {
+//NICT 20250326
+ //        printf("Not find %s.\n", file_name_str);
+        //exit(0);
+    } else {
+        fscanf(fconf, "%d\n", &Total_number_of_solutions);
+        
+        //1. Generate the given_carrier_lightpath_supports.txt file including the lightpath support (ii) for buying. say no need to recover therefore possibile reduce the number of fiber link recovery tasks.
+        for (counter = 0; counter < Total_number_of_solutions; counter ++)
+        {
+            fscanf(fconf, "Seg_i%02dj%02d old_schedule %d new_schedule %d %s %d my_id %d counterpart_id %d price %d\n", &ii, &jj, &old_schedule, &new_schedule, role_string, &role_code, &my_id, &counterpart_id, &price);
+            //PSMT solution role code-> 0:selfuse and recovery  1:recovery and sell lightpath support (ii)  2:no need to recover and buy lightpath support (ii): 2
+            
+            ii = Vp[ii];
+            jj = Vp[jj];
+            
+            Segment_Recovery_Task_Sharing[ii][jj].role = role_code;
+            Segment_Recovery_Task_Sharing[jj][ii].role = role_code;
+
+            if(role_code == 1)
+            {
+                Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[self_carrier_customer_id][counterpart_id] = new_schedule;
+                Segment_Recovery_Task_Sharing[jj][ii].sell_buy_deadline_matrix[self_carrier_customer_id][counterpart_id] = new_schedule;
+                counterpart_carrier_request_counter = Total_number_of_Sell_lightpath_supports_II;
+                Total_number_of_Sell_lightpath_supports_II ++;
+                
+                /*  
+                 * TODO if the lightpath support (ii) should be represented as an extra Request, the following block should be turn on and further check on all the constraints considering all R(a,s,d).
+                if ( ii > jj )
+                {
+                    int temp;
+                    temp = ii;
+                    ii = jj;
+                    jj = temp;
+                }
+                ////////////
+                //NICT 20230911
+                //Since need to sell this segment, add a corresponding request as special customer connection request. Meanwhile, simultaneously, need to force the Bmn MUST be recovered for this segment. This will be added later in this function. MUST_Recovery_Bmn_solution.
+                request_counter = Total_number_of_requests;
+                Total_number_of_requests ++;
+                
+                customer_request_counter = Total_number_of_customer_connection_requests;
+                Total_number_of_customer_connection_requests ++;
+                
+                source[request_counter] = ii;
+                dest[request_counter] = jj;
+                customer_carrier_customer_id[request_counter] = counterpart_id;
+                
+                customer_traffic_request_source[customer_request_counter] = ii;
+                customer_traffic_request_dest[customer_request_counter] = jj;
+                customer_traffic_request_customer_carrier_customer_id[customer_request_counter] = counterpart_id; //customer (e.g., DCP) or carrier
+                
+                customer_traffic_request_weight[customer_request_counter] = 100; //the high weight /low value means high weight
+                customer_traffic_request_volume[customer_request_counter] = Capacity_of_Lightpath;//amount;
+                customer_traffic_request_max_volume[customer_request_counter] = Capacity_of_Lightpath;//Max_Bandwidth;
+                customer_traffic_request_min_volume[customer_request_counter] = Capacity_of_Lightpath;//Min_Bandwidth;
+                customer_traffic_request_priority[customer_request_counter] = 1;//Priority;
+                
+                Traffic_Matrix[counterpart_id][source[request_counter]][dest[request_counter]] += Capacity_of_Lightpath;// amount;
+                Traffic_Matrix[counterpart_id][dest[request_counter]][source[request_counter]] += Capacity_of_Lightpath;// amount;
+
+                */
+                ////////////
+            }
+            if(role_code == 2) //buyers
+            {
+                Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[counterpart_id][self_carrier_customer_id] = new_schedule;
+                Segment_Recovery_Task_Sharing[jj][ii].sell_buy_deadline_matrix[counterpart_id][self_carrier_customer_id] = new_schedule;
+                
+                
+                //The lightpath supports (ii) are marked as a lightpath, although they can be offered with IP-over-WDM connection.
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].source = ii; 
+                Lightpath_Fiber_Link_Recovery_List[Ve[ii]][Ve[jj]].dest = jj;
+            
+                Total_number_of_Buy_lightpath_supports_II ++;
+            }
+        }
+        fclose(fconf);
+        
+        
+        
+        
+        
+    
+        if ((fsolution = fopen("./given_carrier_lightpath_supports.txt","w")) == NULL)//for adding constraint CSPT Part-1 constraint 18 and 19
+        {
+            printf("Fatal error: in Analysis_Requests_Need_Recovery_After_PSMT, cannot create given_carrier_lightpath_supports.temp.\n");
+            //    fclose(fconf);
+            exit(0);
+        }
+        //printf("#########################Printing given_carrier_lightpath_supports.txt\n");
+        fprintf(fsolution, "Path#=%d Customer_Carrier#=%d\n", Total_number_of_Buy_lightpath_supports_II, A);
+
+        counter = 0; 
+        ww = 0;
+        is_esen = 0;
+        for(ii = 0; ii < N; ii ++)
+        {
+            for(jj = ii + 1; jj < N; jj ++)
+            {
+                for(b = 0; b < A; b ++)
+                {
+                    if (b != self_carrier_customer_id && Segment_Recovery_Task_Sharing[ii][jj].sell_buy_deadline_matrix[b][self_carrier_customer_id] > 0)//although role id can be used to check if it is buyer, because there would be multiple counterpart carriers offer support (ii) to it, so count all the support (ii).
+                    {
+                        Max_Bandwidth = W *  Capacity_of_Lightpath;
+                        Min_Bandwidth = W *  Capacity_of_Lightpath;
+                        Priority = 1;
+                        lightpath_support_type = 2;
+                        fprintf(fsolution, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d Lightpath_Support_type=%d\n",counter, ii, jj, b, ww, is_esen, Max_Bandwidth, Min_Bandwidth, Priority, lightpath_support_type);
+                        counter ++;
+                    }
+                }
+            }
+        }
+        fclose(fsolution);
+        
+        
+      
+        //2. Within the original fiber link recovery task list where Beta_mn ==1, generate the MUST_Recovery_Bmn_solution.temp file, identifing the necessary fiber link recovery which MUST be recovered, namely, both that have to recover by carrier itself (not shared) and for selling.
+        
+        sprintf(file_name_str, "./segment_fiber_link_set_solution.temp"); // this file is generated by CSPT Part-4 Segment scheduling (Deadline) analysis.
+        //If psmt_solution exists, means that PSMT has been processed, then segment_fiber_link_set_solution.temp should exist accordingly.
+        if ((fconf = fopen(file_name_str,"r")) == NULL)
+        {
+            printf("Fatal error: in Analysis_Requests_Need_Recovery_After_PSMT, Not find segment_fiber_link_set_solution.temp.\n");
+            exit(0);
+        } else {
+            
+            /////////////
+            
+            fscanf(fconf, "Total_number_of_segment_recovery_task=%d Total_number_of_fiber_link_recovery_task=%d\n", &Total_number_of_segment_recovery_task, &Total_number_of_fiber_link_recovery_task);
+            
+            for(counter = 0; counter < Total_number_of_segment_recovery_task; counter ++)
+            {
+                fscanf(fconf, "ID=%d Segment (i=%02d j=%02d) Weight=%02d Min_Bandwidth=%ld\n", &id, &ii, &jj, &ww, &Min_Bandwidth);
+                
+                for(counter2 = 0; counter2 < Total_number_of_fiber_link_recovery_task; counter2 ++)
+                {
+                    fscanf(fconf, " counter=%d Bm%02dn%02d %d\n",&counter2, &mm,&nn, &is_need_recovery);
+                    if(is_need_recovery == 1)
+                    {
+                        Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[mm][nn] = 1; 
+                        Segment_Recovery_Task_Sharing[jj][ii].fiber_link_recovery_matrix[mm][nn] = 1; 
+                        Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[nn][mm] = 1; 
+                        Segment_Recovery_Task_Sharing[jj][ii].fiber_link_recovery_matrix[nn][mm] = 1; 
+                        
+                    }else if(is_need_recovery == 0) 
+                    {
+                        Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[mm][nn] = 0; 
+                        Segment_Recovery_Task_Sharing[jj][ii].fiber_link_recovery_matrix[mm][nn] = 0; 
+                        Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[nn][mm] = 0; 
+                        Segment_Recovery_Task_Sharing[jj][ii].fiber_link_recovery_matrix[nn][mm] = 0;  
+                    }
+                }
+            }
+            fclose(fconf);
+            
+
+            ////////////
+            //NICT 20230911
+            //Since need to sell this segment, add a corresponding request as special customer connection request. Meanwhile, simultaneously, need to force the Bmn MUST be recovered for this segment. This will be added later in this function. MUST_Recovery_Bmn_solution.       
+            for(mm = 0; mm < N; mm++)
+            {
+                for(nn = 0; nn < N; nn++)
+                {
+                    is_MUST_Recovery_Bmn_solution[mm][nn] = 0;
+                }
+            }
+            
+            for(ii = 0; ii < N; ii ++)
+            {
+                for(jj = ii + 1; jj < N; jj ++)
+                {
+                    if (Segment_Recovery_Task_Sharing[ii][jj].role == 1)
+                    {
+                        for(mm = 0; mm < N; mm++)
+                        {
+                            for(nn = mm + 1; nn < N; nn++)
+                            {
+                                if(Segment_Recovery_Task_Sharing[ii][jj].fiber_link_recovery_matrix[mm][nn] == 1)
+                                {
+                                    is_MUST_Recovery_Bmn_solution[mm][nn] = 1;
+                                }
+                                
+                            }
+                        }
+                    }
+                    
+                }
+            }
+             
+            counter = 0; 
+            for(mm = 0; mm < N; mm++)
+            {
+                for(nn = mm + 1; nn < N; nn++)
+                {
+                    if( is_MUST_Recovery_Bmn_solution[mm][nn] == 1)
+                    {
+                        counter ++;
+                    }
+                }
+            }
+            
+            if ((fsolution = fopen("./MUST_Recovery_Bmn_solution.temp","w")) == NULL)//for adding constraint CSPT Part-1 constraint 24
+            {
+                printf("Fatal error: in Analysis_Requests_Need_Recovery_After_PSMT, cannot create MUST_Recovery_Bmn_solution.temp.\n");
+                //    fclose(fconf);
+                exit(0);
+            }
+            
+            fprintf(fsolution,"%d\n", counter);
+            for(mm = 0; mm < N; mm++)
+            {
+                for(nn = mm + 1; nn < N; nn++)
+                {
+                    if( is_MUST_Recovery_Bmn_solution[mm][nn] == 1)
+                    {
+                        fprintf(fsolution,"Bm%02dn%02d\n", mm, nn);
+                    }
+                }
+            }
+            fclose(fsolution);
+            
+    ////////////////
+        }
+        
+    }
+   
+}
+void Analysis_Requests_Need_Recovery_First()
+{
+
+    int Total_number_of_solutions;
+    int id, b, mm, nn, ii, jj, kk, aa, ss, dd, ww, zz, cc, temp;
+
+    SSolution_Node * ptemp_solution_node;
+    int counter, amount, result_code;
+    char variable_id[1024];
+    char variable_value[1024];
+    long int satisfied_BW;
+    int connection_counter = 0;
+    int lightpath_counter = 0;
+
+    FILE * fconf;
+
+    for ( ii = 0; ii < MAX_N; ii ++)
+    {
+        for (jj = 0; jj < MAX_N; jj ++)
+        {
+            Requests_Need_Recovery_First[ii][jj] = 0; //IP over WDM
+            Lightpath_Need_Recovery_First[ii][jj] = 0; //Lightpath
+        }
+    }
+
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for ( jj = 0; jj < N; jj ++)
+        {
+            Lightpath_Fiber_Link_Recovery_List[ii][jj].total_number_of_recovery_tasks = -1;
+            Lightpath_Fiber_Link_Recovery_List[ii][jj].source = -1;
+            Lightpath_Fiber_Link_Recovery_List[ii][jj].dest = -1;
+            for ( mm = 0; mm < N; mm ++)
+            {
+                for (nn = 0; nn < N; nn ++)
+                {
+                    Lightpath_Fiber_Link_Recovery_List[ii][jj].fiber_link_recovery_matrix[mm][nn] = -1;
+                }
+            }
+        }
+    }
+
+    for ( aa = 0; aa < A;  aa ++)
+        for ( ii = 0; ii < N; ii ++)
+        {
+            for ( jj = 0; jj < N; jj ++)
+            {
+                End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].total_number_of_recovery_tasks = -1;
+                End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].source = -1;
+                End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].dest = -1;
+                for ( mm = 0; mm < N; mm ++)
+                {
+                    for (nn = 0; nn < N; nn ++)
+                    {
+                        End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].fiber_link_recovery_matrix[mm][nn] = -1;
+                    }
+                }
+            }
+        }
+
+    // The following order is necesary.
+    Read_Var_Beta_mn();
+    Read_Var_M_mnij();
+    Read_Var_D_ija();  //The Carrier needs lightpath supports.
+    Read_Var_Counterpart_Carrier_D_ija(); //Read the counterpart carrier's lightpath support demands. if not exits, e.g., standalone, just have value zero.
+    //Read_Var_P_mnijwz();
+
+    Read_PSMT_Deadline_Schedule();
+     
+    Read_Var_Alpha_asd();
+
+    Read_Var_Lambda_ijasd();//X_{ij}^{asd}
+    Read_Var_O_ija(); //The offered lightpaths for customers/counterpart carriers
+
+    //Read_TSMT_Schedule();
+    //Read_PSMT_Deadline_Schedule();
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Var_Beta_mn[mm][nn] == 1)
+            {
+                ii = Var_M_mnij[mm][nn].source;
+                jj = Var_M_mnij[mm][nn].dest;
+                //ww = Var_M_mnij[mm][nn].wavelength;
+                //zz = Var_M_mnij[mm][nn].path_id;
+
+
+                Lightpath_Need_Recovery_First[ii][jj] ++; //NICT2022 concurrent DCPs ECOC2022 only count the time for recovery between i, j
+
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_M_mnij[mm][nn].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    ii = ptemp_solution_node->source;
+                    jj = ptemp_solution_node->dest;
+                    //ww = ptemp_solution_node->wavelength;
+                    //zz = ptemp_solution_node->path_id;
+                    //Lightpath_Need_Recovery_First[ii][jj] += Link_Recovery_Cost[mm][nn];
+                    Lightpath_Need_Recovery_First[ii][jj] ++;  //NICT2022 concurrent DCPs ECOC2022 only count the time for recovery between i, j
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for ( jj = ii + 1; jj < N; jj ++)
+        {
+            if( Lightpath_Need_Recovery_First[ii][jj] > 0)
+            {
+                ss = Var_Lambda_ijasd[ii][jj].source;
+                dd = Var_Lambda_ijasd[ii][jj].dest;
+                Requests_Need_Recovery_First[ss][dd] += Lightpath_Need_Recovery_First[ii][jj];
+
+                SSolution_Node * ptemp_solution_node;
+                ptemp_solution_node = Var_Lambda_ijasd[ii][jj].pNext_Solution_Node;
+                while ( ptemp_solution_node != NULL)
+                {
+                    ss = ptemp_solution_node->source;
+                    dd = ptemp_solution_node->dest;
+                    Requests_Need_Recovery_First[ss][dd] += Lightpath_Need_Recovery_First[ii][jj];
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+            }
+        }
+    }
+
+    ///////////Output Request and Recovery List: !!!  Although for DCPs use, all the nodes use edge node ID (is_esen=0) in the output file.
+    //However, for the leadtime check, since the info is internal use, all the nodes use optical node id. namly translated from edge node id to optical node id.
+
+    if ((fconf = fopen("./dci_lead_time_checklist.temp","w")) == NULL)
+    {
+        printf("Cannot to create output file dci_lead_time_checklist.temp.\n");
+        exit(1);
+    }
+    id = 0;
+    counter = 0;
+
+    /////////////
+    for(b = 0; b < Total_number_of_customer_connection_requests ; b ++)
+    {
+        ss = Ve[customer_traffic_request_source[b]];
+        dd = Ve[customer_traffic_request_dest[b]];
+        aa = customer_traffic_request_customer_carrier_customer_id[b];
+
+         //NICT 20250128 PoC
+        if( ss > dd)
+        {
+           kk = ss;
+           ss = dd;
+           dd = kk;
+        }
+
+        if(aa != self_carrier_customer_id )//>= Total_number_of_carriers) //stands for a customer, i.e., DCP
+        {
+            if (Var_Alpha_asd[aa][ss][dd] > 0 && Requests_Need_Recovery_First[ss][dd] > 0)
+            {
+                connection_counter ++;
+                //fprintf(fconf, "\n");
+            }
+        }
+    }
+
+
+    amount = 0;
+    for(b = 0; b < Total_number_of_customer_lightpath_requests ; b ++)
+    {
+        ii = Ve[customer_lightpath_support_source[b]];
+        jj = Ve[customer_lightpath_support_dest[b]];
+        aa = customer_lightpath_support_customer_carrier_customer_id[b];
+
+        //NICT 20250128 PoC
+        if( ii > jj)
+        {
+           kk = ii;
+           ii = jj;
+           jj = kk;
+        }
+        
+        if (aa != self_carrier_customer_id) //means customer
+        {
+            if (Var_O_ija[ii][jj].carrier_customer_id == aa)
+            {
+                result_code = 3; //means the lightpath is available immediately 1 or non-immediately 2.because, the price is declared
+                amount = Var_O_ija[ii][jj].value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa]; //Here O_ija is binarry var. so need to multiply the number of lightpaths recorded in var "is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa]"
+
+            } else {
+                ptemp_solution_node = Var_O_ija[ii][jj].pNext_Solution_Node;
+                while (ptemp_solution_node != NULL && ptemp_solution_node->carrier_customer_id != aa)
+                {
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+
+                if(ptemp_solution_node != NULL)
+                {
+                    result_code = 3; //means the lightpath is available immediately 1 or non-immediately 2.
+                    amount = ptemp_solution_node->value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][ptemp_solution_node->carrier_customer_id];
+                } else {
+                    result_code = 0; // means not found the value 1 solution for carrier_customer_id a's lightpath support request between ii and jj
+                }
+            }
+
+            if (amount > 0 && Lightpath_Need_Recovery_First[ii][jj] > 0)
+            {
+
+                lightpath_counter ++;
+                //fprintf(fconf, "\n");
+            }
+        }
+    }
+    /////////////
+    fprintf(fconf, "Total_number_of_satisfied_requests=%d Total_number_of_fiber_link_recovery_task=%d\n", connection_counter + lightpath_counter, Total_number_of_fiber_link_recovery_task);
+
+    for(b = 0; b < Total_number_of_customer_connection_requests ; b ++)
+    {
+        ss = Ve[customer_traffic_request_source[b]];
+        dd = Ve[customer_traffic_request_dest[b]];
+        aa = customer_traffic_request_customer_carrier_customer_id[b];
+
+        if( ss > dd)
+        {
+           kk = ss;
+           ss = dd;
+           dd = kk;
+        }
+        
+        if(aa != self_carrier_customer_id )//>= Total_number_of_carriers) //stands for a customer, i.e., DCP
+        {
+            if (Var_Alpha_asd[aa][ss][dd] > 0 && Requests_Need_Recovery_First[ss][dd] > 0)
+            {
+                //20220429 satisfied_BW = (long int) customer_traffic_request_volume[b] * 1000 * Var_Alpha_asd[aa][ss][dd];
+                satisfied_BW = (long int) customer_traffic_request_volume[b] * Var_Alpha_asd[aa][ss][dd];
+
+                fprintf(fconf, "ID=%d Request (a=%02d s=%02d d=%02d) Weight=%02d Satisfied_Bandwidth=%ld\n", id, aa, customer_traffic_request_source[b], customer_traffic_request_dest[b], customer_traffic_request_weight[b], satisfied_BW);
+                id ++;
+                counter = 0;
+
+                for ( mm = 0; mm < N; mm ++)
+                {
+                    for (nn = mm + 1; nn < N; nn ++)
+                    {
+
+                        if(Var_Beta_mn[mm][nn] == 1 && End_to_End_Lightpath_Connection_Recovery_List[aa][ss][dd].fiber_link_recovery_matrix[mm][nn] == -1)
+                        {
+                            fprintf(fconf, " counter=%d Bm%02dn%02d 0\n",counter, mm,nn);
+                            counter ++;
+
+                        }
+
+                        if(Var_Beta_mn[mm][nn] == 1 && End_to_End_Lightpath_Connection_Recovery_List[aa][ss][dd].fiber_link_recovery_matrix[mm][nn] == 1)
+                        {
+                            fprintf(fconf, " counter=%d Bm%02dn%02d 1\n",counter, mm,nn);
+                            counter ++;
+                            End_to_End_Lightpath_Connection_Recovery_List[aa][ss][dd].fiber_link_recovery_matrix[mm][nn] == 1;
+                        }
+                    }
+                }
+                //fprintf(fconf, "\n");
+            }
+        }
+    }
+
+
+    amount = 0;
+    for(b = 0; b < Total_number_of_customer_lightpath_requests ; b ++)
+    {
+        ii = Ve[customer_lightpath_support_source[b]];
+        jj = Ve[customer_lightpath_support_dest[b]];
+        aa = customer_lightpath_support_customer_carrier_customer_id[b];
+        
+        //NICT 20250128 PoC
+        if( ii > jj)
+        {
+           kk = ii;
+           ii = jj;
+           jj = kk;
+        }
+        
+        if (aa != self_carrier_customer_id) //means customer
+        {
+            if (Var_O_ija[ii][jj].carrier_customer_id == aa)
+            {
+                result_code = 3; //combined results, means the lightpath is available immediately 1 or non-immediately 2. because, the price is declared
+                amount = Var_O_ija[ii][jj].value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa];
+
+            } else {
+                ptemp_solution_node = Var_O_ija[ii][jj].pNext_Solution_Node;
+                while (ptemp_solution_node != NULL && ptemp_solution_node->carrier_customer_id != aa)
+                {
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+
+                if(ptemp_solution_node != NULL)
+                {
+                    result_code = 3; //means the lightpath is available immediately 1 or non-immediately 2.
+                    amount = ptemp_solution_node->value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][ptemp_solution_node->carrier_customer_id];
+                } else {
+                    result_code = 0; // means not found the value 1 solution for carrier_customer_id a's lightpath support request between ii and jj
+                }
+            }
+
+            if (amount > 0 && Lightpath_Need_Recovery_First[ii][jj] > 0)
+            {
+                fprintf(fconf, "ID=%d Request (a=%02d s=%02d d=%02d) Weight=%02d Satisfied_Bandwidth=%ld\n", id, aa, customer_lightpath_support_source[b], customer_lightpath_support_dest[b], customer_lightpath_support_weight[b], (long int) amount * 100000);
+                id ++;
+                counter = 0;
+                for ( mm = 0; mm < N; mm ++)
+                {
+                    for (nn = mm + 1; nn < N; nn ++)
+                    {
+
+                        if(Var_Beta_mn[mm][nn] == 1 && End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].fiber_link_recovery_matrix[mm][nn] == -1)
+                        {
+                            fprintf(fconf, " counter=%d Bm%02dn%02d 0\n",counter, mm,nn);
+                            counter ++;
+
+                        }
+
+                        if(Var_Beta_mn[mm][nn] == 1 && End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].fiber_link_recovery_matrix[mm][nn] == 0)
+                        {
+                            fprintf(fconf, " counter=%d Bm%02dn%02d 1\n",counter, mm,nn);
+                            counter ++;
+                            End_to_End_Lightpath_Connection_Recovery_List[aa][ii][jj].fiber_link_recovery_matrix[mm][nn] == 1;
+                        }
+                    }
+                }
+                //fprintf(fconf, "\n");
+            }
+        }
+    }
+
+    fclose(fconf);
+
+    //system("wc -l < dd.tmp > dci_lead_time_checklist.temp");
+    //system("cat dd.tmp >> dci_lead_time_checklist.temp");
+    //system("rm ./dd.tmp");
+
+    ///////////Output Request and Recovery List
+
+
+
+    Output_Total_Cost_Income();
+
+}
+
+void Output_Total_Cost_Income()
+{
+    int a, aa, ss, dd, b, mm, nn, ii, jj;
+    int counter;
+    int sum_recovery_cost;
+
+    int sum_buy_connection_cost;
+    int carrier_id;
+
+    float sum_sell_connection_income;
+    int sum_sell_lightpath_support_income;
+    int sum_sell_lightpath_support_to_counterpart_carrier_income;
+
+    int sum_buy_tsmt_segment_cost;
+    int sum_sell_tsmt_segment_income;
+
+    FILE * fconf;
+
+
+    sum_recovery_cost = 0;
+    sum_buy_connection_cost = 0;
+    sum_sell_connection_income = 0;
+    sum_sell_lightpath_support_income = 0;
+    sum_sell_lightpath_support_to_counterpart_carrier_income = 0;
+    
+
+    sum_buy_tsmt_segment_cost = 0;
+    sum_sell_tsmt_segment_income = 0;
+
+    if ((fconf = fopen("./carrier_evaluation.csv","w")) == NULL)
+    {
+        printf("Cannot to create output file carrier_evaluation.csv\n");
+        exit(1);
+    }
+
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Var_Beta_mn[mm][nn] == 1) //  && (Fiber_Recovery_Task_Sharing[mm][nn].role == 0 || Fiber_Recovery_Task_Sharing[mm][nn].role == 1) ) //self recovery or sell segment << input from tsmt_solution.temp. if Fiber_Recovery_Task_Sharing[mm][nn].role == 2 means buy the segment (with W number of channels) from the counterpart carrier, who will undertake the recovery assigned by PNE via TSMT.
+            {
+                //if(Link_Recovery_Cost[mm][nn] > 1) //means this is the damaged fiber link
+                if(Link_Recovery_Cost[mm][nn] > 0) //means this is the damaged fiber link
+                {
+                    sum_recovery_cost += Link_Recovery_Cost[mm][nn];
+                }                
+            }
+        }
+    }
+    
+    for ( mm = 0; mm < N; mm ++)
+    {
+        for (nn = mm + 1; nn < N; nn ++)
+        {
+            if( Segment_Recovery_Task_Sharing[mm][nn].role == 1)
+                //sell segment << input from tsmt_solution.temp. if Fiber_Recovery_Task_Sharing[mm][nn].role == 2 means buy the segment (with W number of channels) from the counterpart carrier, who will undertake the recovery assigned by PNE via TSMT.
+            {
+                for (b = 0; b < A; b++)
+                {
+                    if(Segment_Recovery_Task_Sharing[mm][nn].sell_buy_deadline_matrix[self_carrier_customer_id][b] > 0)
+                        sum_sell_tsmt_segment_income += W * EPOC_Path_Normal_Price[Vop[mm]][Vop[nn]][self_carrier_customer_id];
+                }
+            }
+        }
+    }
+    
+    //counterpart carrier 
+    //for(carrier_id = 0; carrier_id < A; carrier_id++)
+    {
+        for ( mm = 0; mm < N; mm ++)
+        {
+            for (nn = mm + 1; nn < N; nn ++)
+            {
+                if( Segment_Recovery_Task_Sharing[mm][nn].role == 2)
+                //buy segment << input from tsmt_solution.temp. if Fiber_Recovery_Task_Sharing[mm][nn].role == 2 means buy the segment (with W number of channels) from the counterpart carrier, who will undertake the recovery assigned by PNE via TSMT.
+                {
+                    for (b = 0; b < A; b++)
+                    {
+                        if(Segment_Recovery_Task_Sharing[mm][nn].sell_buy_deadline_matrix[b][self_carrier_customer_id] > 0)
+                            sum_buy_tsmt_segment_cost += W * EPOC_Path_Normal_Price[Vop[mm]][Vop[nn]][b];
+                    }
+                }
+            }
+        }
+    }
+
+    
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            if( Var_D_ija[ii][jj].value != -1)
+            {
+                //carrier_id = (self_carrier_customer_id + 1)%Total_number_of_carriers; 
+                //TODO need change if three carriers in cooperation. need to record the target carrier's price.
+                //if(Fiber_Recovery_Task_Sharing[ii][jj].role == 0) //means this is a surviving lightpath support (i)
+                {
+                    sum_buy_connection_cost += EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][Var_D_ija[ii][jj].carrier_customer_id] * Var_D_ija[ii][jj].value; ////EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][0] other carriers declared price
+                }//otherwise it is a segment, the cost should be count as segmen buying cost.
+            }
+        }
+    }
+
+    //Sell the lightpath supports
+    
+    //The following lightpath support income has two parts: 1, from customers like DCPs, 2, from counterpart_carrier in carrier-carrier cooperation.
+
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            if( Var_O_ija[ii][jj].carrier_customer_id != -1 && Var_O_ija[ii][jj].carrier_customer_id != self_carrier_customer_id)
+            {
+                if(is_Feasible_to_Sell_Connection[Voe[ii]][Voe[jj]] > 0 && is_Original_Customer_Request[Var_O_ija[ii][jj].carrier_customer_id][Voe[ii]][Voe[jj]] == 0) //declared by carrier himself in the price list. Say, it is possible to have the income.
+                {
+
+                    sum_sell_lightpath_support_income += EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][self_carrier_customer_id] * Var_O_ija[ii][jj].value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][Var_O_ija[ii][jj].carrier_customer_id] ; //In low bound CSPT O_ija is binarry a variable. So need to multiply the number of lightpaths in a request "is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa]" ////EPOC_Path_Price[Vop[ii]][Vop[jj]][1] means self declared price
+
+                    SSolution_Node * ptemp_solution_node;
+                    ptemp_solution_node = Var_O_ija[ii][jj].pNext_Solution_Node; //there would be multiple customers/carriers required the ligthpaths between i, j. go to the chain to check all the buyers.
+                    while ( ptemp_solution_node != NULL)
+                    {
+                        //printf("Oi%02dj%02da%02d %d\n", ii, jj, ptemp_solution_node->carrier_customer_id, ptemp_solution_node->value);
+                        sum_sell_lightpath_support_income += EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][self_carrier_customer_id] * ptemp_solution_node->value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][ptemp_solution_node->carrier_customer_id];
+                        //EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][1] "1" means self declared price
+                        ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                    }
+                }
+            }
+        }
+    }
+
+    //2 count the lightpathsupport to the counterpart carrier.
+    for ( ii = 0; ii < N; ii ++)
+    {
+        for (jj = ii + 1; jj < N; jj ++)
+        {
+            for(a = 0; a < A; a ++)
+            {
+            //if( Var_O_ija[ii][jj].carrier_customer_id != -1 && Var_O_ija[ii][jj].carrier_customer_id != self_carrier_customer_id)
+            {
+                if(is_Feasible_to_Sell_Connection[Voe[ii]][Voe[jj]] > 0 && a != self_carrier_customer_id && counterpart_carrier_Var_D_ija[a][ii][jj].value >0) //declared by carrier himself in the price list. Say, it is possible to have the income. and offer the ligthpath supports to the counerpart carrier with his/her Dij_solution
+                {
+
+                    sum_sell_lightpath_support_to_counterpart_carrier_income += EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][self_carrier_customer_id] * counterpart_carrier_Var_D_ija[a][ii][jj].value; //In low bound CSPT O_ija is binarry a variable. So need to multiply the number of lightpaths in a request "is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][aa]" ////EPOC_Path_Price[Vop[ii]][Vop[jj]][1] means self declared price
+                }
+            }
+            }
+        }
+    }
+
+
+
+    //Sell the IP over WDM connection
+    float ratio;
+    for ( counter = 0; counter < Total_number_of_customer_connection_requests; counter ++)
+    {
+        ss = Ve[customer_traffic_request_source[counter]]; //edge node -> optical node with mapping Ve[]
+        dd = Ve[customer_traffic_request_dest[counter]]; //edge node  -> optical node with mapping Ve[]
+
+        //ratio = (float) customer_traffic_request_volume[counter] / 100; //in Gbps
+        ratio = (float) customer_traffic_request_volume[counter] / 100000; //in Mbps
+
+
+        for(aa = 0; aa < MAX_A; aa ++)
+            if ( (aa != self_carrier_customer_id) && Var_Alpha_asd[aa][ss][dd] > 0 && is_Original_Customer_Request[aa][Voe[ss]][Voe[dd]] == 0) //is_Original_Customer_Request[aa][Voe[ss]][Voe[dd]] == 0 means that the connection is not the original existing connection requests, if == 1, say, the origianl request before disaster, no need to count the income, because the request has been paid and should be provided originally.
+            {
+                sum_sell_connection_income = sum_sell_connection_income + ((float) EPOC_Path_Normal_Price[Vop[ss]][Vop[dd]][self_carrier_customer_id] * ratio);
+                
+                //sum_sell_connection_income += ceil ((float) EPOC_Path_Normal_Price[Vop[ss]][Vop[dd]][self_carrier_customer_id] * ratio);
+                //EPOC_Path_Normal_Price[Vop[ii]][Vop[jj]][1] means self declared price
+            }
+    }
+
+    float income_sum, profit;
+    int payment_sum;
+    
+    payment_sum = sum_recovery_cost + sum_buy_connection_cost + sum_buy_tsmt_segment_cost;
+    income_sum = sum_sell_connection_income + (float) sum_sell_lightpath_support_income + (float) sum_sell_lightpath_support_to_counterpart_carrier_income +
+    (float) sum_sell_tsmt_segment_income;
+    
+    profit = income_sum - (float) payment_sum;
+    
+    
+    fprintf(fconf, "[Cost]: 1.Segment Recovery, 2.Buy Lightpath Support, 3.Buy TSMT Segments    [Income]: 4.Sell IP over WDM to customers, 5.Sell lightpath to customer, 6.Sell lightpath support to counerpart carrier, 7.Sell TSMT Segments  [Profit]: \n");
+    fprintf(fconf, "Sum_Cost %d : %d,%d,%d Sum_Icome %f : %f,%d,%d,%d Profit %f\n",
+            payment_sum,
+            sum_recovery_cost, sum_buy_connection_cost, sum_buy_tsmt_segment_cost,
+            income_sum,
+            sum_sell_connection_income, sum_sell_lightpath_support_income, sum_sell_lightpath_support_to_counterpart_carrier_income, sum_sell_tsmt_segment_income,
+            profit
+           );
+    fclose(fconf);
+}
+
+void Output_Customer_IP_over_WDM_Connection_Request_Results()
+{
+
+    int ss, dd, b;
+    int counter;
+    FILE * fconf;
+
+    FILE * fsolution;
+
+    if ((fsolution = fopen("./dci_customer_request_solution.temp","w")) == NULL)
+    {
+        printf("Cannot to create output file dci_customer_request_solution.temp\n");
+        exit(1);
+    }
+
+    Analysis_Requests_Need_Recovery_First();
+//    printf("Total_number_of_customer_connection_requests=%d (esen-view)\n", Total_number_of_customer_connection_requests);
+
+    printf("Path#=%d Customer_Carrier#=%d\n", Total_number_of_customer_connection_requests, A);
+    fprintf(fsolution,"Path#=%d Customer_Carrier#=%d\n", Total_number_of_customer_connection_requests, A);
+    //output the connection_requests which is immediately available
+
+    if ((fconf = fopen("./links.csv","w")) == NULL)
+    {
+        printf("Cannot to create output file links.csv\n");
+        exit(1);
+    }
+    counter = 1;
+
+    fprintf(fconf, "ID,Src_node,Dst_node,Min_Req_BW,Max_Req_BW,Satisfied_Bandwidth,Latency,Result,Lead_Time,Score,Customer_ID\n");
+
+    for(b = 0; b < Total_number_of_customer_connection_requests ; b ++)
+    {
+        ss = Ve[customer_traffic_request_source[b]];
+        dd = Ve[customer_traffic_request_dest[b]];
+        
+        //NICT20250128 PoC
+       
+
+        if(customer_traffic_request_customer_carrier_customer_id[b] >= Total_number_of_carriers) //stands for a customer, i.e., DCP
+        {
+            if ( Var_Alpha_asd[customer_traffic_request_customer_carrier_customer_id[b]][ss][dd] == 0)
+            {
+                if(customer_traffic_request_is_esen[b] == 0)
+                {
+                    
+                    if (Voe[ss] > Voe[dd])
+                    {
+                        int ttt;
+                        ttt = ss;
+                        ss = dd;
+                        dd = ttt;                        
+                    }
+                    
+                    // Var_Alpha_sd is == 0 means the request is unsatisfied.
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b],  (long int) 0, LATENCY, BLOCK_LEADTIME, 0, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                    
+                    //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b] * 1000,  (long int) customer_traffic_request_max_volume[b] * 1000, (long int) customer_traffic_request_volume[b] * 1000, LATENCY, -1, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the
+                    //The final value "0" means the request is unsatisfied.
+                    counter ++;
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Voe[ss],
+                           Voe[dd],
+                           customer_traffic_request_customer_carrier_customer_id[b],
+                           customer_traffic_request_weight[b],
+                           customer_traffic_request_priority[b],
+                           (long int) customer_traffic_request_min_volume[b],
+                           (long int) customer_traffic_request_max_volume[b],
+                           (long int) 0,
+                           20,
+                           0,
+                           0,
+                           BLOCK_LEADTIME
+                           );
+                    
+                    fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Voe[ss],
+                            Voe[dd],
+                            customer_traffic_request_customer_carrier_customer_id[b],
+                            customer_traffic_request_weight[b],
+                            customer_traffic_request_priority[b],
+                            (long int) customer_traffic_request_min_volume[b],
+                            (long int) customer_traffic_request_max_volume[b],
+                            (long int) 0,
+                            20,
+                            0,
+                            0,
+                            BLOCK_LEADTIME
+                            );
+
+                    
+                }
+                if(customer_traffic_request_is_esen[b] == 1)
+                {
+                    if (Vop[ss] > Vop[dd])
+                    {
+                        int ttt;
+                        ttt = ss;
+                        ss = dd;
+                        dd = ttt;                        
+                    }
+                    
+                    
+                    // Var_Alpha_sd is == 0 means the request is unsatisfied.
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Vop[ss], Vop[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b],  (long int) 0, LATENCY, BLOCK_LEADTIME, 0, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                    
+                    //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b] * 1000,  (long int) customer_traffic_request_max_volume[b] * 1000, (long int) customer_traffic_request_volume[b] * 1000, LATENCY, -1, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the
+                    
+                    //The final value "0" means the request is unsatisfied.
+                    counter ++;
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                       b,
+                       Vop[ss],
+                       Vop[dd],
+                       customer_traffic_request_customer_carrier_customer_id[b],
+                       customer_traffic_request_weight[b],
+                       customer_traffic_request_priority[b],
+                       (long int) customer_traffic_request_min_volume[b],
+                       (long int) customer_traffic_request_max_volume[b],
+                       (long int) 0,
+                       20,
+                       0,
+                       0,
+                       BLOCK_LEADTIME
+                      );
+                    
+                    fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                        b,
+                        Vop[ss],
+                        Vop[dd],
+                        customer_traffic_request_customer_carrier_customer_id[b],
+                        customer_traffic_request_weight[b],
+                        customer_traffic_request_priority[b],
+                        (long int) customer_traffic_request_min_volume[b],
+                        (long int) customer_traffic_request_max_volume[b],
+                        (long int) 0,
+                        20,
+                        0,
+                        0,
+                        BLOCK_LEADTIME
+                       );
+                    
+                }
+
+            }
+
+            if ( Var_Alpha_asd[customer_traffic_request_customer_carrier_customer_id[b]][ss][dd] > 0)
+            {
+                // Var_Alpha_sd is > 0 means the request is satisfied. While, two situations are included. (1) the service is created based on surviving resource, and immediately available. (2) the service is created based on some links which need recocvery first, hence it is not immediately available.
+                if (Requests_Need_Recovery_First[ss][dd] == 0)
+                {
+                    if(customer_traffic_request_is_esen[b] == 0)
+                    {    
+                        if (Voe[ss] > Voe[dd])
+                        {
+                            int ttt;
+                            ttt = ss;
+                            ss = dd;
+                            dd = ttt;                            
+                        }
+                        
+                        // (Result=1) the service is created based on surviving resource, and immediately available.
+                        //20220429 in Mbps unit fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b] * 1000, LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,1\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_volume[b] * 1000, LATENCY);
+                        //The final value "1" means the request is satisfied.
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Voe[ss],
+                           Voe[dd],
+                           customer_traffic_request_customer_carrier_customer_id[b],
+                           customer_traffic_request_weight[b],
+                           customer_traffic_request_priority[b],
+                           (long int) customer_traffic_request_min_volume[b],
+                           (long int) customer_traffic_request_max_volume[b],
+                           ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                           (long int) customer_traffic_request_volume[b],
+                           20,
+                           1,
+                           100,
+                           0
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Voe[ss],
+                            Voe[dd],
+                            customer_traffic_request_customer_carrier_customer_id[b],
+                            customer_traffic_request_weight[b],
+                            customer_traffic_request_priority[b],
+                            (long int) customer_traffic_request_min_volume[b],
+                            (long int) customer_traffic_request_max_volume[b],
+                            ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                            (long int) customer_traffic_request_volume[b],
+                            20,
+                            1,
+                            100,
+                            0
+                           );
+                    }
+                    if(customer_traffic_request_is_esen[b] == 1)
+                    {    
+                        if (Vop[ss] > Vop[dd])
+                        {
+                            int ttt;
+                            ttt = ss;
+                            ss = dd;
+                            dd = ttt;                            
+                        }
+                        
+                        // (Result=1) the service is created based on surviving resource, and immediately available.
+                        //20220429 in Mbps unit fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b] * 1000, LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Vop[ss], Vop[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY, 0, 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "all", result=1, Lead Time "0", Score "100%"
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,1\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_volume[b] * 1000, LATENCY);
+                        //The final value "1" means the request is satisfied.
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Vop[ss],
+                           Vop[dd],
+                           customer_traffic_request_customer_carrier_customer_id[b],
+                           customer_traffic_request_weight[b],
+                           customer_traffic_request_priority[b],
+                           (long int) customer_traffic_request_min_volume[b],
+                           (long int) customer_traffic_request_max_volume[b],
+                           ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                           (long int) customer_traffic_request_volume[b],
+                           20,
+                           1,
+                           100,
+                           0
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Vop[ss],
+                            Vop[dd],
+                            customer_traffic_request_customer_carrier_customer_id[b],
+                            customer_traffic_request_weight[b],
+                            customer_traffic_request_priority[b],
+                            (long int) customer_traffic_request_min_volume[b],
+                            (long int) customer_traffic_request_max_volume[b],
+                            ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                            (long int) customer_traffic_request_volume[b],
+                            20,
+                            1,
+                            100,
+                            0
+                           );
+                    }
+
+                } else if (Requests_Need_Recovery_First[ss][dd] > 0)
+                {
+                    if(customer_traffic_request_is_esen[b] == 0)
+                    {    
+                        if (Voe[ss] > Voe[dd])
+                        {
+                            int ttt;
+                            ttt = ss;
+                            ss = dd;
+                            dd = ttt;                            
+                        }
+                        
+                        // (Result=2) the service is created based on surviving resource and recovered resource, and need to wait for recovery, say, non-immediately available.
+                        
+                        ////20220429 in Mbps unit fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b] ,  (long int) customer_traffic_request_max_volume[b] , (long int) customer_traffic_request_volume[b] * 1000, LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]);    //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]);    //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,2\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_volume[b] * 1000, LATENCY);
+                        //The final value "1" means the request is satisfied but need to wait for recovery.
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Voe[ss],
+                           Voe[dd],
+                           customer_traffic_request_customer_carrier_customer_id[b],
+                           customer_traffic_request_weight[b],
+                           customer_traffic_request_priority[b],
+                           (long int) customer_traffic_request_min_volume[b],
+                           (long int) customer_traffic_request_max_volume[b],
+                           ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                           (long int) customer_traffic_request_volume[b],
+                           20,
+                           2,
+                           100,
+                           Requests_Need_Recovery_First[ss][dd]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Voe[ss],
+                            Voe[dd],
+                            customer_traffic_request_customer_carrier_customer_id[b],
+                            customer_traffic_request_weight[b],
+                            customer_traffic_request_priority[b],
+                            (long int) customer_traffic_request_min_volume[b],
+                            (long int) customer_traffic_request_max_volume[b],
+                            ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                            (long int) customer_traffic_request_volume[b],
+                            20,
+                            2,
+                            100,
+                            Requests_Need_Recovery_First[ss][dd]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                           );
+                    }
+                    if(customer_traffic_request_is_esen[b] == 1)
+                    {    
+                        if (Vop[ss] > Vop[dd])
+                        {
+                            int ttt;
+                            ttt = ss;
+                            ss = dd;
+                            dd = ttt;                            
+                        }
+                        
+                        // (Result=2) the service is created based on surviving resource and recovered resource, and need to wait for recovery, say, non-immediately available.
+                        
+                        ////20220429 in Mbps unit fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b] ,  (long int) customer_traffic_request_max_volume[b] , (long int) customer_traffic_request_volume[b] * 1000, LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]);    //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Vop[ss], Vop[dd], (long int) customer_traffic_request_min_volume[b],  (long int) customer_traffic_request_max_volume[b], (long int) customer_traffic_request_volume[b], LATENCY,Requests_Need_Recovery_First[ss][dd], 100, customer_traffic_request_customer_carrier_customer_id[b]);    //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth all, result=2, Lead Time Requests_Need_Recovery_First[ss][dd], Score "100%"
+                        
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,2\n", counter, Voe[ss], Voe[dd], (long int) customer_traffic_request_volume[b] * 1000, LATENCY);
+                        //The final value "1" means the request is satisfied but need to wait for recovery.
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Vop[ss],
+                           Vop[dd],
+                           customer_traffic_request_customer_carrier_customer_id[b],
+                           customer_traffic_request_weight[b],
+                           customer_traffic_request_priority[b],
+                           (long int) customer_traffic_request_min_volume[b],
+                           (long int) customer_traffic_request_max_volume[b],
+                           ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                           (long int) customer_traffic_request_volume[b],
+                           20,
+                           2,
+                           100,
+                           Requests_Need_Recovery_First[ss][dd]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Vop[ss],
+                            Vop[dd],
+                            customer_traffic_request_customer_carrier_customer_id[b],
+                            customer_traffic_request_weight[b],
+                            customer_traffic_request_priority[b],
+                            (long int) customer_traffic_request_min_volume[b],
+                            (long int) customer_traffic_request_max_volume[b],
+                            ////20220429 in Mbps unit (long int) customer_traffic_request_volume[b] * 1000,
+                            (long int) customer_traffic_request_volume[b],
+                            20,
+                            2,
+                            100,
+                            Requests_Need_Recovery_First[ss][dd]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                           );
+                    }
+                    
+                }
+            }
+        }
+    }
+    fclose(fconf);
+    fclose(fsolution);
+
+}
+
+void Output_Customer_Lightpath_Support_Request_Results()
+{
+    int ii, jj, ss, dd, a, b, amount, result_code;
+    SSolution_Node * ptemp_solution_node;
+    int counter;
+    FILE * fconf;
+    FILE * fsolution;
+
+    if ((fsolution = fopen("./dci_customer_request_solution.temp","w")) == NULL)
+    {
+        printf("Cannot to create output file dci_customer_request_solution.temp\n");
+        exit(1);
+    }
+
+    Analysis_Requests_Need_Recovery_First();
+
+    printf("Path#=%d Customer_Carrier#=%d\n", Total_number_of_customer_lightpath_requests, A);
+    fprintf(fsolution,"Path#=%d Customer_Carrier#=%d\n", Total_number_of_customer_lightpath_requests, A);
+
+    if ((fconf = fopen("./links.csv","w")) == NULL)
+    {
+        printf("Cannot to create output file links.csv\n");
+        exit(1);
+    }
+    counter = 1;
+
+    fprintf(fconf, "ID,Src_node,Dst_node,Min_Req_BW,Max_Req_BW,Satisfied_Bandwidth,Latency,Result,Lead_Time,Score,Customer_ID\n");
+
+    for(b = 0; b < Total_number_of_customer_lightpath_requests ; b ++)
+    {
+        ii = Ve[customer_lightpath_support_source[b]];
+        jj = Ve[customer_lightpath_support_dest[b]];
+        a = customer_lightpath_support_customer_carrier_customer_id[b];
+
+        if (a >= Total_number_of_carriers) //means customer
+        {
+
+            if (Var_O_ija[ii][jj].carrier_customer_id == a)
+            {
+                result_code = 3; //means the lightpath is available immediately 1 or non-immediately 2.because, the price is declared
+                amount = Var_O_ija[ii][jj].value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][a];
+
+            } else {
+                ptemp_solution_node = Var_O_ija[ii][jj].pNext_Solution_Node;
+                while (ptemp_solution_node != NULL && ptemp_solution_node->carrier_customer_id != a)
+                {
+                    ptemp_solution_node = ptemp_solution_node->pNext_Solution_Node;
+                }
+
+                if(ptemp_solution_node != NULL)
+                {
+                    result_code = 3; //means the lightpath is available immediately 1 or non-immediately 2.
+                    amount = ptemp_solution_node->value * is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[ii]][Voe[jj]][ptemp_solution_node->carrier_customer_id];
+                } else {
+                    result_code = 0; // means not found the value 1 solution for carrier_customer_id a's lightpath support request between ii and jj
+                }
+            }
+
+            if( result_code == 0)
+            {
+                if(customer_traffic_request_is_esen[b] == 0)
+                {
+                    if (Voe[ii] > Voe[jj])
+                    {
+                        int ttt;
+                        ttt = ii;
+                        ii = jj;
+                        jj = ttt;                        
+                    }
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id.
+                    
+                    
+                    //Result=0 means the request is unsatisfied.
+                    //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b],  (long int)  0, LATENCY,BLOCK_LEADTIME, 0, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                    
+                    fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b],  (long int)  0, LATENCY,BLOCK_LEADTIME, 0, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                                        
+                    counter ++;
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                       b,
+                       Voe[ii],
+                       Voe[jj],
+                       customer_lightpath_support_customer_carrier_customer_id[b],
+                       customer_lightpath_support_weight[b],
+                       customer_lightpath_support_priority[b],
+                       (long int) customer_lightpath_support_min_amount[b],
+                       (long int) customer_lightpath_support_max_amount[b],
+                       (long int) 0,
+                       20,
+                       0,
+                       0,
+                       BLOCK_LEADTIME
+                      );
+                    fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                        b,
+                        Voe[ii],
+                        Voe[jj],
+                        customer_lightpath_support_customer_carrier_customer_id[b],
+                        customer_lightpath_support_weight[b],
+                        customer_lightpath_support_priority[b],
+                        (long int) customer_lightpath_support_min_amount[b],
+                        (long int) customer_lightpath_support_max_amount[b],
+                        (long int) 0,
+                        20,
+                        0,
+                        0,
+                        BLOCK_LEADTIME
+                       );
+                }
+                if(customer_traffic_request_is_esen[b] == 1)
+                {
+                    if (Vop[ii] > Vop[jj])
+                    {
+                        int ttt;
+                        ttt = ii;
+                        ii = jj;
+                        jj = ttt;                        
+                    }
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id.
+                    
+                    
+                    //Result=0 means the request is unsatisfied.
+                    //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b],  (long int)  0, LATENCY,BLOCK_LEADTIME, 0, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                    
+                    fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,0,%d,%d,%d\n", counter, Vop[ii], Vop[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b],  (long int)  0, LATENCY,BLOCK_LEADTIME, 0, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                                        
+                    counter ++;
+                    
+                    //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                    printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                       b,
+                       Vop[ii],
+                       Vop[jj],
+                       customer_lightpath_support_customer_carrier_customer_id[b],
+                       customer_lightpath_support_weight[b],
+                       customer_lightpath_support_priority[b],
+                       (long int) customer_lightpath_support_min_amount[b],
+                       (long int) customer_lightpath_support_max_amount[b],
+                       (long int) 0,
+                       20,
+                       0,
+                       0,
+                       BLOCK_LEADTIME
+                      );
+                    fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                        b,
+                        Vop[ii],
+                        Vop[jj],
+                        customer_lightpath_support_customer_carrier_customer_id[b],
+                        customer_lightpath_support_weight[b],
+                        customer_lightpath_support_priority[b],
+                        (long int) customer_lightpath_support_min_amount[b],
+                        (long int) customer_lightpath_support_max_amount[b],
+                        (long int) 0,
+                        20,
+                        0,
+                        0,
+                        BLOCK_LEADTIME
+                       );
+                }
+            }
+            if( result_code == 3)
+            {
+                //1 or 2
+                if(Lightpath_Need_Recovery_First[ii][jj] == 0)
+                {
+                    if(customer_traffic_request_is_esen[b] == 0)
+                    {
+                        if (Voe[ii] > Voe[jj])
+                        {
+                            int ttt;
+                            ttt = ii;
+                            ii = jj;
+                            jj = ttt;                            
+                        }
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        // (Result=1) the service is created based on surviving resource, and immediately available.
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, 0, 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, 0, 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Voe[ii],
+                           Voe[jj],
+                           customer_lightpath_support_customer_carrier_customer_id[b],
+                           customer_lightpath_support_weight[b],
+                           customer_lightpath_support_priority[b],
+                           (long int) customer_lightpath_support_min_amount[b],
+                           (long int) customer_lightpath_support_max_amount[b],
+                           (long int) customer_lightpath_support_amount[b] * 100000,
+                           20,
+                           1,
+                           100,
+                           0
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Voe[ii],
+                            Voe[jj],
+                            customer_lightpath_support_customer_carrier_customer_id[b],
+                            customer_lightpath_support_weight[b],
+                            customer_lightpath_support_priority[b],
+                            (long int) customer_lightpath_support_min_amount[b],
+                            (long int) customer_lightpath_support_max_amount[b],
+                            (long int) customer_lightpath_support_amount[b] * 100000,
+                            20,
+                            1,
+                            100,
+                            0
+                           );
+                    }if(customer_traffic_request_is_esen[b] == 1)
+                    {
+                        if (Vop[ii] > Vop[jj])
+                        {
+                            int ttt;
+                            ttt = ii;
+                            ii = jj;
+                            jj = ttt;                            
+                        }
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        // (Result=1) the service is created based on surviving resource, and immediately available.
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, 0, 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,1,%d,%d,%d\n", counter, Vop[ii], Vop[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, 0, 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Vop[ii],
+                           Vop[jj],
+                           customer_lightpath_support_customer_carrier_customer_id[b],
+                           customer_lightpath_support_weight[b],
+                           customer_lightpath_support_priority[b],
+                           (long int) customer_lightpath_support_min_amount[b],
+                           (long int) customer_lightpath_support_max_amount[b],
+                           (long int) customer_lightpath_support_amount[b] * 100000,
+                           20,
+                           1,
+                           100,
+                           0
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Vop[ii],
+                            Vop[jj],
+                            customer_lightpath_support_customer_carrier_customer_id[b],
+                            customer_lightpath_support_weight[b],
+                            customer_lightpath_support_priority[b],
+                            (long int) customer_lightpath_support_min_amount[b],
+                            (long int) customer_lightpath_support_max_amount[b],
+                            (long int) customer_lightpath_support_amount[b] * 100000,
+                            20,
+                            1,
+                            100,
+                            0
+                           );
+                    }
+
+                } else if(Lightpath_Need_Recovery_First[ii][jj] > 0)
+                {
+                    if(customer_traffic_request_is_esen[b] == 0)
+                    {
+                        if (Voe[ii] > Voe[jj])
+                        {
+                            int ttt;
+                            ttt = ii;
+                            ii = jj;
+                            jj = ttt;                            
+                        }
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        // (Result=2) the service is created based on surviving resource and recovered resource, and need to wait for recovery, say, non-immediately available.
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,2\n", counter, Voe[ii], Voe[jj], (long int) amount*100000, LATENCY);
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, Lightpath_Need_Recovery_First[ii][jj], 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, Lightpath_Need_Recovery_First[ii][jj], 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Voe[ii],
+                           Voe[jj],
+                           customer_lightpath_support_customer_carrier_customer_id[b],
+                           customer_lightpath_support_weight[b],
+                           customer_lightpath_support_priority[b],
+                           (long int) customer_lightpath_support_min_amount[b],
+                           (long int) customer_lightpath_support_max_amount[b],
+                           (long int) customer_lightpath_support_amount[b] * 100000,
+                           20,
+                           2,
+                           100,
+                           Lightpath_Need_Recovery_First[ii][jj]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=0 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Voe[ii],
+                            Voe[jj],
+                            customer_lightpath_support_customer_carrier_customer_id[b],
+                            customer_lightpath_support_weight[b],
+                            customer_lightpath_support_priority[b],
+                            (long int) customer_lightpath_support_min_amount[b],
+                            (long int) customer_lightpath_support_max_amount[b],
+                            (long int) customer_lightpath_support_amount[b] * 100000,
+                            20,
+                            2,
+                            100,
+                            Lightpath_Need_Recovery_First[ii][jj]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                           );
+                    }
+                    if(customer_traffic_request_is_esen[b] == 1)
+                    {
+                        if (Vop[ii] > Vop[jj])
+                        {
+                            int ttt;
+                            ttt = ii;
+                            ii = jj;
+                            jj = ttt;                            
+                        }
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        // (Result=2) the service is created based on surviving resource and recovered resource, and need to wait for recovery, say, non-immediately available.
+                        //fprintf(fconf, "%d,%d,%d,%ld,%d,2\n", counter, Voe[ii], Voe[jj], (long int) amount*100000, LATENCY);
+                        
+                        //fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Voe[ii], Voe[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, Lightpath_Need_Recovery_First[ii][jj], 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        fprintf(fconf, "%d,%d,%d,%ld,%ld,%ld,%d,2,%d,%d,%d\n", counter, Vop[ii], Vop[jj], (long int) customer_lightpath_support_min_amount[b],  (long int) customer_lightpath_support_max_amount[b], (long int) customer_lightpath_support_amount[b] * 100000, LATENCY, Lightpath_Need_Recovery_First[ii][jj], 100, customer_lightpath_support_customer_carrier_customer_id[b]); //NICT2022 concurrent DCPs ECOC2022, in the low bound trial, the unsatisfied request with bandwidth "0", result=0, Lead Time "-1", Score "0"
+                        
+                        counter ++;
+                        
+                        //NICT 20230911 !!!! because any .csv file is the results to customer, all the node id should be in the PNE public namespace, whereas, in *.temp file, all the results are for carrier selfuse, so no need to convert the internal id to public PNE node id. 
+                        printf("path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                           b,
+                           Vop[ii],
+                           Vop[jj],
+                           customer_lightpath_support_customer_carrier_customer_id[b],
+                           customer_lightpath_support_weight[b],
+                           customer_lightpath_support_priority[b],
+                           (long int) customer_lightpath_support_min_amount[b],
+                           (long int) customer_lightpath_support_max_amount[b],
+                           (long int) customer_lightpath_support_amount[b] * 100000,
+                           20,
+                           2,
+                           100,
+                           Lightpath_Need_Recovery_First[ii][jj]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                          );
+                        fprintf(fsolution,"path-id:%d s=%d d=%d customer/carrier_customer_id=%d weight=%d is_esen=1 Priority=%d Min_Bandwidth=%ld Max_Bandwidth=%ld Satisfied_Bandwidth=%ld Latency=%d Result=%d Score=%d Lead_Time=%d\n",
+                            b,
+                            Vop[ii],
+                            Vop[jj],
+                            customer_lightpath_support_customer_carrier_customer_id[b],
+                            customer_lightpath_support_weight[b],
+                            customer_lightpath_support_priority[b],
+                            (long int) customer_lightpath_support_min_amount[b],
+                            (long int) customer_lightpath_support_max_amount[b],
+                            (long int) customer_lightpath_support_amount[b] * 100000,
+                            20,
+                            2,
+                            100,
+                            Lightpath_Need_Recovery_First[ii][jj]//NICT 2022 concurrent DCPs ECOC2022 Lead time In this low bound trial CSPT, this is a dummy value.
+                           );
+                    }
+                }
+            }
+        }
+    }
+    fclose(fconf);
+    fclose(fsolution);
+
+}
+
+
+
+////////////////////
+
+
+long int * Get_Element(long int iii, long int jjj,long int * pelementID);
+
+long int * Get_VarID_P(int ss, int dd, int zzz, int cc, int ww, int iii, int jjj, int mm, int nn);
+long int * Get_VarID_M(int iii, int jjj, int mm, int nn); //NICT 2022 concurrent DCPs, ECOC2022
+long int * Get_VarID_B(int mm, int nn);
+long int * Get_VarID_U(int bb);
+long int * Get_VarID_V(int zzz, int ww, int iii, int jjj);
+long int * Get_VarID_C(int aaa, int ss, int dd);
+long int * Get_VarID_X(int aaa, int ss, int dd, int iii, int jjj);
+long int * Get_VarID_D(int iii, int jjj, int aaa);
+long int * Get_VarID_O(int iii, int jjj, int aaa);
+
+
+long int * Get_VarID_A(int ss, int dd, int aa);
+long int * Get_VarID_Y(int ss, int dd, int cc, int ww, int iii, int jjj);
+long int * Get_VarID_R(int ss, int dd, int cc, int ww, int iii, int jjj, int aa);
+
+bool is_In_Outside_Edge_Node_Set(int iii);
+
+bool is_In_Outside_Edge_Node_Set(int iii)
+{
+    int in_outside_node_pair_id;
+
+    for (in_outside_node_pair_id = 0; in_outside_node_pair_id < Total_number_of_requests_outside; in_outside_node_pair_id ++)
+    {
+        if (In_out_source[in_outside_node_pair_id] == iii)
+        {
+//            printf("\n ######is In outside Edge? %d YES\n", iii);
+            return true;
+        }
+    }
+//   printf("\n ######is In outside Edge? %d NO\n", iii);
+
+    return false;
+
+
+}
+
+bool is_In_Inside_Edge_Node_Set(int iii);
+
+bool is_In_Inside_Edge_Node_Set(int iii)
+{
+    int in_outside_node_pair_id;
+
+    int border_node_id;
+    for (in_outside_node_pair_id = 0; in_outside_node_pair_id < Total_number_of_requests_outside; in_outside_node_pair_id ++)
+    {
+        if (In_out_source[in_outside_node_pair_id] == iii)
+        {
+            //         printf("\n $$$$$$is In Inside Edge? %d NO\n", iii);
+            return false;
+        }
+    }
+
+    for (border_node_id = 0; border_node_id < BN; border_node_id ++)
+    {
+        //    printf("\n iii %d current border node test id is %d the node id is %d\n",iii, border_node_id, Vb[border_node_id]);
+        if (Vb[border_node_id] == iii)
+        {
+            //       printf("\n $$$$$$is In Inside Edge? %d NO\n", iii);
+            return false;
+        }
+    }
+//    printf("\n $$$$$$is In Inside Edge? %d YES\n", iii);
+
+    return true;
+
+
+}
+
+
+bool isTest(int mm, int nn);
+
+void write_files(long int iii, long int jjj, int r, long long int b, long int* pelementID,int thread_id);
+
+long int * Get_Element(long int iii, long int jjj,long int * pelementID)
+{
+    long int * ret;
+    long int offset;
+
+    offset = jjj;//(iii*MAX_VAR+ jjj);//*sizeof(long int);
+
+    ret = pelementID + offset;
+    return ret;
+}
+
+
+
+
+long int * Get_VarID_P(int ss, int dd, int zzz, int cc, int ww, int iii, int jjj, int mm, int nn)
+{
+    long int * ret;
+    long int offset;
+
+    //offset = (ss*Ne*C*W*Ne*Ne*N*N + dd*C*W*Ne*Ne*N*N + cc*W*Ne*Ne*N*N + ww*Ne*Ne*N*N + iii*Ne*N*N + jjj*N*N + mm*N + nn);//*sizeof(int);
+    offset = (zzz*C*W*Ne*Ne*N*N + cc*W*Ne*Ne*N*N + ww*Ne*Ne*N*N + iii*Ne*N*N + jjj*N*N + mm*N + nn);//*sizeof(int);
+
+    ret = pVarID_P + offset;
+    return ret;
+}
+
+
+long int * Get_VarID_M(int iii, int jjj, int mm, int nn)
+{
+    long int * ret;
+    long int offset;
+
+    //offset = (ss*Ne*C*W*Ne*Ne*N*N + dd*C*W*Ne*Ne*N*N + cc*W*Ne*Ne*N*N + ww*Ne*Ne*N*N + iii*Ne*N*N + jjj*N*N + mm*N + nn);//*sizeof(int);
+    offset = (iii*Ne*N*N + jjj*N*N + mm*N + nn);//*sizeof(int);
+
+    ret = pVarID_M + offset;
+    return ret;
+}
+
+
+long int * Get_VarID_U(int bb)
+{
+    long int * ret;
+    long int offset;
+
+    offset = bb;//*sizeof(int);
+
+    ret = pVarID_U + offset;
+    return ret;
+}
+
+long int * Get_VarID_V(int zzz, int ww, int iii, int jjj)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (zzz*W*Ne*Ne + ww*Ne*Ne + iii*Ne + jjj);//*sizeof(int);
+
+    ret = pVarID_V + offset;
+    return ret;
+}
+
+
+long int * Get_VarID_C(int aaa, int ss, int dd) // alpha_{sd}^a
+{
+    long int * ret;
+    long int offset;
+
+    offset = (aaa*Ne*Ne + ss*Ne + dd);//*sizeof(int);
+
+    ret = pVarID_C + offset;
+    return ret;
+}
+
+long int * Get_VarID_X(int aaa, int ss, int dd, int iii, int jjj)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (aaa*Ne*Ne*Ne*Ne + ss*Ne*Ne*Ne + dd*Ne*Ne + iii*Ne + jjj);//*sizeof(int);
+
+    ret = pVarID_X + offset;
+    return ret;
+}
+
+long int * Get_VarID_R(int ss, int dd, int cc, int ww, int iii, int jjj, int aa)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (ss*Ne*C*W*Ne*Ne*N + dd*C*W*Ne*Ne*N + cc*W*Ne*Ne*N + ww*Ne*Ne*N + iii*Ne*N + jjj*N + aa);//*sizeof(int);
+
+    ret = pVarID_R + offset;
+    return ret;
+}
+
+long int * Get_VarID_Y(int ss, int dd, int cc, int ww, int iii, int jjj)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (ss*Ne*C*W*Ne*Ne + dd*C*W*Ne*Ne + cc*W*Ne*Ne + ww*Ne*Ne + iii*Ne + jjj);//*sizeof(int);
+
+    ret = pVarID_Y + offset;
+    return ret;
+}
+
+long int * Get_VarID_D(int iii, int jjj, int aaa)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (iii*Ne*A + jjj*A + aaa);// + aa);//*sizeof(int);
+
+    // printf("###################GetVarID_D offset %ld iii %d, jjj %d\n", offset, iii, jjj);
+    ret = pVarID_D + offset;
+    // printf("###################GetVarID_D offset %ld iii %d, jjj %d  ret %ld\n", offset, iii, jjj,ret);
+    return ret;
+}
+
+long int * Get_VarID_O(int iii, int jjj, int aaa)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (iii*Ne*A + jjj*A + aaa);//*sizeof(int);
+
+    ret = pVarID_O + offset;
+    return ret;
+}
+
+long int * Get_VarID_A(int ss, int dd, int aa)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (ss*Ne*Ne + dd*Ne + aa);//*sizeof(int);
+
+    ret = pVarID_A + offset;
+    return ret;
+}
+
+long int * Get_VarID_B(int mm, int nn)
+{
+    long int * ret;
+    long int offset;
+
+    offset = (mm *N + nn);//*sizeof(int);
+
+    ret = pVarID_B + offset;
+    return ret;
+}
+
+
+bool isTest(int mm, int nn)
+{
+    int ii, m,n;
+
+    for (ii = 0; ii < Total_number_of_trial; ii ++)
+    {
+        if (
+            (test_m[ii] == mm && test_n[ii] == nn && Link[mm][nn] > 0)
+            ||
+            (test_m[ii] == nn && test_n[ii] == mm && Link[mm][nn] > 0)
+        )
+            return true;
+    }
+    return false;
+}
+
+void write_files(long int iii, long int jjj,  int r, long long int b, long int* pelementID,int thread_id)
+{
+
+    //      12345678901234567890123456789012345678901234567890
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+
+    FILE * fc;
+    FILE * fv;
+    FILE * fr;
+    FILE * fb;
+
+    long int size;
+    long int jj;
+    switch (thread_id) {
+    case 1: {
+        fc = fconstraints1;
+        fv =  fvariables1;
+        fr = frhs1;
+        fb = fbounds1;
+        break;
+    }
+    case 2: {
+        fc = fconstraints2;
+        fv =  fvariables2;
+        fr = frhs2;
+        fb = fbounds2;
+        break;
+    }
+    case 3: {
+        fc = fconstraints3;
+        fv =  fvariables3;
+        fr = frhs3;
+        fb = fbounds3;
+        break;
+    }
+    case 4: {
+        fc = fconstraints4;
+        fv =  fvariables4;
+        fr = frhs4;
+        fb = fbounds4;
+        break;
+    }
+    case 5: {
+        fc = fconstraints5;
+        fv =  fvariables5;
+        fr = frhs5;
+        fb = fbounds5;
+        break;
+    }
+    case 6: {
+        fc = fconstraints6;
+        fv =  fvariables6;
+        fr = frhs6;
+        fb = fbounds6;
+        break;
+    }
+    case 7: {
+        fc = fconstraints7;
+        fv =  fvariables7;
+        fr = frhs7;
+        fb = fbounds7;
+        break;
+    }
+    case 8: {
+        fc = fconstraints8;
+        fv =  fvariables8;
+        fr = frhs8;
+        fb = fbounds8;
+        break;
+    }
+
+
+
+
+    }
+
+    if (r==0)
+        fprintf(fc," E  %08ld\n", iii); //constraint
+    else if (r==1)
+        fprintf(fc," L  %08ld\n", iii); //constraint
+
+
+    for (jj = 0; jj < jjj; jj ++)
+    {
+        pcurrent_element = Get_Element(0,jj,pelementID);
+        if ((*pcurrent_element)!=0)
+        {
+            printf("%2ld  %08ld  ",  (*pcurrent_element), jj);
+            printf("[%s]  ",  (var + jj * 40));
+            fprintf(fv,"    %08ld  ",jj);//var+jj*15);
+            fprintf(fv,"%08ld %ld\n", iii, (*pcurrent_element));
+        }
+
+    }
+    printf("   R %2d  B%2lld\n\n\n",r,b);
+    fprintf(fr,"AADB    RHS1      %08ld ",iii); // add a patern AADB for the binarry integer variable, in the main (), there is an integer variable lambda L.
+    //fprintf(fr,"    RHS1      %08ld ",iii);
+    fprintf(fr,"%lld\n",b);
+
+
+    size = sizeof(long int)* Total_number_of_vars;
+
+    memset(pelementID,'\0', size);
+
+
+
+}
+
+//void *pth1(void *arg) {
+void Ppth1() {
+    long int* pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int a, b,s,d,c,w,i,j,m,n,k,z;
+    int node_pair_id;
+
+    long int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 1;
+    char str[40];
+
+
+
+
+    if ((fconstraints1 = fopen("constraints1","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables1 = fopen("variables1","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs1 = fopen("rhs1","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds1 = fopen("bounds1","w")) == NULL)
+    {
+        exit(1);
+    }
+
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+
+    ii = 0;
+    //The objective
+
+    for (jj = Start_number_of_Casd; jj < Start_number_of_Casd + Total_number_of_Casd; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = (long int) (weight[jj - Start_number_of_Casd]) * (-100000000000); //B1 11++
+    }
+
+    for (jj = Start_number_of_Oija; jj < Start_number_of_Oija + Total_number_of_Oija; jj ++) //NICT 20210831 added according to the introduction of DCI Oij denotes integrer o_ij, with the unified notation of variables, the first letter is in Upper-case.
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = (long int) (lightpath_support_weight[jj - Start_number_of_Oija]) * (-100000000000); //B1//9++
+    }
+
+
+    for (jj = Start_number_of_Ub; jj < Start_number_of_Ub + Total_number_of_Ub; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = 10000000000 ;//10
+    }
+
+
+    for (jj = Start_number_of_Bmn; jj < Start_number_of_Bmn + Total_number_of_Bmn; jj ++)
+    {
+        m = test_m[jj - Start_number_of_Bmn];
+        n = test_n[jj - Start_number_of_Bmn];
+        if (Link[m][n] > 0)
+        {
+            pcurrent_element = Get_Element(ii,jj,pElementID);
+            (*pcurrent_element) = (long int) (test_weight[jj - Start_number_of_Bmn]) * (100000); //5 //8++ Bmn first will request more Dij
+        }
+    }
+
+    for ( i = 0; i < Np; i++)
+    {
+        for (j = i+1; j < Np; j++)
+        {
+            for (a = 0; a < A; a++)
+            {
+                if( is_feasible_to_Buy_EPOC_lighpath[i][j][a] == 1)
+                {
+                    if(a != self_carrier_customer_id)
+                    {
+                        pcurrent_var = Get_VarID_D(Vpe[i], Vpe[j], a); //a=0, don't care from which carrier should buy.
+                        jj = *pcurrent_var;
+
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        //(*pcurrent_element) = (long int) EPOC_Path_Price[i][j][(self_carrier_customer_id+1)%Total_number_of_carriers]*(100000); //5
+                        (*pcurrent_element) = (long int) EPOC_Path_Price[i][j][a]*(100000); //5
+                    }
+                }
+            }
+        }
+    }
+
+
+    for (jj = Start_number_of_Mijmn; jj < Start_number_of_Mijmn + Total_number_of_Mijmn; jj ++) //NICT 2022 concurrent DCPs ECOC2022
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = 1000; //++
+    }
+    /*
+     //NICT20131003 slim model
+        for (jj = Start_number_of_X_asdij; jj < Start_number_of_X_asdij + Total_number_of_X_asdij; jj ++)
+        {
+            pcurrent_element = Get_Element(ii,jj,pElementID);
+            (*pcurrent_element) = 100; //++
+        }
+    */
+    /*
+        for (jj = Start_number_of_Psdzcwijmn; jj < Start_number_of_Psdzcwijmn + Total_number_of_Psdzcwijmn; jj ++)
+        {
+            pcurrent_element = Get_Element(ii,jj,pElementID);
+            (*pcurrent_element) = 10; //++ ;
+        }
+    */
+
+    for (jj = Start_number_of_Vzwij; jj < Start_number_of_Vzwij + Total_number_of_Vzwij; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = 10; //++ ;
+    }
+
+
+    for (jj = Start_number_of_X_asdij; jj < Start_number_of_X_asdij + Total_number_of_X_asdij; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) ++ ;
+    }
+
+
+
+    B = 0; //not used for
+    R = 0; //not used
+
+    for (jj = 0; jj < Total_number_of_vars; jj ++)
+    {
+        pcurrent_element = Get_Element(0,jj,pElementID);
+        if ((*pcurrent_element)!=0)
+        {
+            fprintf(fvariables1,"    %08ld  ",jj);//var+jj*40);
+            fprintf(fvariables1,"%08ld %ld\n", ii, (*pcurrent_element));
+        }
+    }
+    memset(pElementID,'\0', size);
+
+    /*
+    //Test Begin 20130726  Manually add the Low bound to redeuce time of the second time computation
+    ii ++;
+    for (jj = Total_number_of_vars - Total_number_of_requests; jj < Total_number_of_vars; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = (weight[Total_number_of_requests - (Total_number_of_vars - jj)]) * (-1000); //++
+    }
+
+    for (jj = Total_number_of_vars - Total_number_of_requests- Total_number_of_Bmn; jj < Total_number_of_vars - Total_number_of_requests; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = (test_weight[jj - (Total_number_of_vars - Total_number_of_requests- Total_number_of_Bmn)]) * (10); //++
+    }
+
+
+    for (jj = Total_number_of_vars - Total_number_of_requests- Total_number_of_Bmn - Total_number_of_X_asdij; jj < Total_number_of_vars - Total_number_of_requests - Total_number_of_Bmn; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) = 100; //++
+    }
+
+
+    for (jj = 0; jj < Total_number_of_vars - Total_number_of_requests- Total_number_of_Bmn - Total_number_of_X_asdij; jj ++)
+    {
+        pcurrent_element = Get_Element(ii,jj,pElementID);
+        (*pcurrent_element) ++ ;
+    }
+
+    B = -158956; // directly set the objective value
+    R = 1; ////0: =    1: <=
+    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id );
+    printf("*Test constraint %d\n", ii);
+
+    ////Test End
+
+    */
+
+    /*
+
+       ii ++;
+
+       for (jj = Start_number_of_Casd; jj < Start_number_of_Casd + Total_number_of_Casd; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) = (weight[jj - Start_number_of_Casd]) * (-1000); //++
+       }
+
+       for (jj = Start_number_of_Bmn; jj < Start_number_of_Bmn + Total_number_of_Bmn; jj ++)
+       {
+           m = test_m[jj - Start_number_of_Bmn];
+           n = test_n[jj - Start_number_of_Bmn];
+           if (Link[m][n] > 0)
+           {
+               pcurrent_element = Get_Element(ii,jj,pElementID);
+               (*pcurrent_element) = (test_weight[jj - Start_number_of_Bmn]) * (10); //++
+           }
+       }
+
+       for (jj = Start_number_of_Psdzcwijmn; jj < Start_number_of_Psdzcwijmn + Total_number_of_Psdzcwijmn; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) = 10; //++ ;
+       }
+
+       for (jj = Start_number_of_Ub; jj < Start_number_of_Ub + Total_number_of_Ub; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) ++ ;
+       }
+
+       for (jj = Start_number_of_X_asdij; jj < Start_number_of_X_asdij + Total_number_of_X_asdij; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) ++ ;
+       }
+
+
+       B = 93645997; //not used for
+       R = 1; //0: =    1: <=
+       write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id );
+
+       printf("*Restrict Obj's upper bound \n", ii);
+
+    */
+    /*
+       ii ++;
+
+       for (jj = Start_number_of_Casd; jj < Start_number_of_Casd + Total_number_of_Casd; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) = (weight[jj - Start_number_of_Casd]) * (1000); //++
+       }
+
+       for (jj = Start_number_of_Bmn; jj < Start_number_of_Bmn + Total_number_of_Bmn; jj ++)
+       {
+           m = test_m[jj - Start_number_of_Bmn];
+           n = test_n[jj - Start_number_of_Bmn];
+           if (Link[m][n] > 0)
+           {
+               pcurrent_element = Get_Element(ii,jj,pElementID);
+               (*pcurrent_element) = (test_weight[jj - Start_number_of_Bmn]) * (-10); //++
+           }
+       }
+
+       for (jj = Start_number_of_Psdzcwijmn; jj < Start_number_of_Psdzcwijmn + Total_number_of_Psdzcwijmn; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) = - 10; //++ ;
+       }
+
+       for (jj = Start_number_of_Ub; jj < Start_number_of_Ub + Total_number_of_Ub; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) -- ;
+       }
+
+       for (jj = Start_number_of_X_asdij; jj < Start_number_of_X_asdij + Total_number_of_X_asdij; jj ++)
+       {
+           pcurrent_element = Get_Element(ii,jj,pElementID);
+           (*pcurrent_element) -- ;
+       }
+
+
+       B = 423276927; //not used for
+       R = 1; //0: =    1: <=
+       write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id );
+
+       printf("*Restrict Obj's lower bound \n", ii);
+
+    */
+
+
+
+
+
+
+    // Wavelength routing 1 Eq.(6)
+    s = 0;
+    d = 0;
+    for (z = 0; z < Z; z ++)
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i ++)
+                {
+                    for (j = i + 1; j < Ne; j ++)
+                    {
+                        if (
+                            F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(i)
+                                &&
+                                is_In_Inside_Edge_Node_Set(j)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(j)
+                                &&
+                                is_In_Inside_Edge_Node_Set(i)
+                            )
+                            &&
+                            is_feasible_lightpath[i][j] == 1
+                        )
+                        {
+                            for (k = 0; k < N; k ++)
+                            {
+                                if ((V[k] != Ve[i]) && (V[k] != Ve[j]))// && (V[k] != Ve[s]) && (V[k] != Ve[d]))  //20140203  s d are dummy
+                                {
+                                    ii ++;
+                                    // if(ii == 14028)
+                                    //  printf("me");
+                                    item_num = 0;
+                                    for (m = 0; m < N; m ++)
+                                    {
+                                        if (
+                                            ((V[m] != V[k]) && (Ve[j] != V[m]) && (U_w_m_n[w][V[m]][V[k]] == 0))
+                                            ||
+                                            ((V[m] != V[k]) && (Ve[j] != V[m]) && (is_test_set[V[m]][V[k]] > 0))
+                                        )
+                                        {
+
+                                            item_num ++;
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], V[k]);
+                                            jj = * pcurrent_var;
+
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) ++;
+                                        }
+                                    }
+
+                                    for (n = 0; n < N; n ++)
+                                    {
+                                        if (
+                                            ((V[n] != V[k]) && (Ve[i] != V[n]) && (U_w_m_n[w][V[k]][V[n]] == 0))
+                                            ||
+                                            ((V[n] != V[k]) && (Ve[i] != V[n]) && (is_test_set[V[k]][V[n]] > 0))
+
+                                        )
+                                        {
+                                            item_num ++;
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[k], V[n]);
+                                            jj = * pcurrent_var;
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) --;
+                                        }
+                                    }
+
+                                    if (item_num > 0)
+                                    {
+                                        B = 0;
+                                        R = 0; //0: =    1: <=
+                                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id );
+
+                                    } else {
+                                        ii --;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    printf("*WA1_1 constraint %ld sum(Pmk) = sum(Pkn) Eq.(7)\n", ii);//Eq (7) is the eq no. in PNET 2020  CSPT
+    //NICT 2022 DCPs added z path id allowing multiple lightpaths between i and j.
+
+
+
+
+
+
+
+
+    /*
+        //NICT20140217  Border Traffic Constraint X(s'dbk)  <= Ub any s', d (s',d) in R', b in B Eq.(22)
+
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests_outside; node_pair_id ++)
+        {
+            s = In_out_source[node_pair_id];
+            d = In_out_dest[node_pair_id];
+            for (k = 0 ; k < Ne; k ++)
+            {
+                int is_inside_node;
+                is_inside_node = 1;
+
+                int O_idd;
+                for (O_idd = 0; O_idd < Total_number_of_requests_outside; O_idd ++)
+                {
+                    if (k == In_out_source[O_idd])
+                    {
+                        is_inside_node = 0;
+                        break;
+                    }
+                }
+
+                if (is_inside_node == 1)
+                {
+
+                    int B_idd;
+                    for (B_idd = 0; B_idd < BN; B_idd ++)
+                    {
+                        if (k == Vb[B_idd])
+                        {
+                            is_inside_node = 0;
+                            break;
+                        }
+                    }
+
+
+                    if (is_inside_node == 1)
+                    {
+                        ii ++;
+
+                        pcurrent_var = Get_VarID_X(s, d, s, k);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+
+                        B = 0;
+                        R = 0; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    }
+                }
+
+            }
+        }
+        printf("*Border-3 constraint %d X(s'dsk)  = 0 any s', d (s',d) in R', k in V-{s}-B, Eq.(22) \n", ii);
+
+        */
+    /*
+         //NICT20140217  Border Traffic Constraint sum(Ub) >= 2  any b in B Eq.(22)
+
+
+         i ++;
+         for (b = 0; b < BN; b ++)
+         {
+
+             pcurrent_var = Get_VarID_U(Vb[b]);
+             jj = * pcurrent_var;
+             pcurrent_element = Get_Element(ii,jj,pElementID);
+             (*pcurrent_element) --;
+
+             B = -2;
+             R = 1; //0: =    1: <=
+             write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+         }
+
+
+     printf("*Border-4 constraint %d sum(Ub) >= 2  (22) \n", ii);
+
+     */
+
+
+
+
+
+
+
+    /////////////////////////////////////
+    //2
+
+    //TODO 20140203
+
+    // Wavelength routing 1_2   sum(Pin) = sum(Pmj)  Eq.(7)
+
+    s = 0;
+    d = 0;
+
+    for (z = 0; z < Z; z ++)
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i++)
+                {
+                    for (j = i + 1; j < Ne; j ++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            ii ++;
+                            item_num = 0;
+                            for (n = 0; n < N; n ++)
+                            {
+                                if (
+                                    ((V[n] != Ve[i]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                    ||
+                                    ((V[n] != Ve[i]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, Ve[i], V[n]);
+
+                                    jj = * pcurrent_var;
+
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) ++;
+                                }
+                            }
+                            for (m = 0; m < N; m ++)
+                            {
+                                if (
+                                    ((V[m] != Ve[j]) && (U_w_m_n[w][V[m]][Ve[j]] == 0))
+                                    ||
+                                    ((V[m] != Ve[j]) && (is_test_set[V[m]][Ve[j]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], Ve[j]);
+
+                                    jj = * pcurrent_var;
+
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                }
+                            }
+
+                            if (item_num > 0)
+                            {
+                                B = 0;
+                                R = 0; //0: =    1: <=
+                                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                            } else {
+                                ii --;
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+    printf("*WA1_2 constraint %ld Wavelength routing 1_2   sum(Pin) = sum(Pmj)  omitted = v_ij^w Eq.(8) (9) \n", ii);  // connected to eq. (8)(8)Eq (8,9) is the eq no. in PNET 2020  CSPT
+    //NICT 2022 DCPs ECOC2022 extend variable P with a new dimension of path_id to support multiple lightpaths between i and j.
+
+    /////////////////
+
+
+
+    /////////////////////
+    //3
+
+
+    // transponder constraints 1
+    s = 0;
+    d = 0;
+    for (c = 0; c < C; c ++)
+    {
+        for (w = lambda_start; w < lambda_end; w ++)
+        {
+            for (i = 0; i < Ne; i ++)
+            {
+                if (F_c_w_i[c][w][Ve[i]] > 0)
+                {
+                    ii ++;
+                    item_num = 0;
+                    for (z = 0; z < Z; z ++)
+                        for (j = 0; j < Ne; j ++)
+                        {
+                            if ((F_c_w_i[c][w][Ve[j]] > 0) && (i != j)
+                                    &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(i)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(j)
+                                    )
+                                    &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(j)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(i)
+                                    )
+                                    &&
+                                    is_feasible_lightpath[i][j] == 1
+                               )
+                            {
+                                for (n = 0; n < N; n ++)
+                                {
+                                    if (
+                                        ((Ve[i] != V[n]) && (U_w_m_n[w][Ve[i]][V[n]]==0))
+                                        ||
+                                        ((Ve[i] != V[n]) && (is_test_set[Ve[i]][V[n]]>0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        if (j > i)//if (Ve[j] > Ve[i])//
+                                        {
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, Ve[i], V[n]);
+                                        } else if ( j < i) //} else if ( Ve[j] < Ve[i])
+                                        {
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, j, i, V[n], Ve[i]);
+                                        }
+
+                                        jj = * pcurrent_var;
+
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                            }
+                        }
+
+
+                    if (item_num > 0)
+                    {
+                        B = F_c_w_i[c][w][Ve[i]];
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R, B, pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+                }
+            }
+        }
+    }
+    printf("*TPND1 constraint %ld Sum(P) <= Fi^w Constraint (3),(4)\n", ii); //Ref to PNET 2020  CSPT
+
+    //NICT2022 DCPs ECOC2022
+
+    s = 0;
+    d = 0;
+    for (i = 0; i < Ne; i ++)
+    {
+        ii ++;
+        item_num = 0;
+        for (z = 0; z < Z; z ++)
+            for (c = 0; c < C; c ++)
+            {
+                for (w = lambda_start; w < lambda_end; w ++)
+                {
+                    for (j = 0; j < Ne; j++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0 && (i != j)
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            for (n = 0; n < N; n ++)
+                            {
+                                if (
+                                    ((Ve[i] != V[n]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                    ||
+                                    ((Ve[i] != V[n]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    if (j > i)//if (Ve[j] > Ve[i])
+                                    {
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, Ve[i], V[n]);
+                                    } else if ( j < i) //} else if ( Ve[j] < Ve[i])
+                                    {
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, j, i, V[n], Ve[i]);
+                                    }
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) ++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        if (item_num > 0)
+        {
+            B = F_i[Ve[i]];
+            R = 1; //0: =    1: <=
+            write_files(ii,Total_number_of_vars,R, B, pElementID,pth_id);
+        } else {
+            ii --;
+        }
+    }
+
+    printf("*TPND2 constraint %ld Sum(P) <= Gi Gj Eq.(5),(6).\n", ii); //PNET 2020  MCSPT
+    /////////////////////
+    //NICT 2022 DCPs ECOC2022
+    /////////
+    //4
+
+    //NICT20140217
+    // Wavelength routing 2  Eq.(8)
+    s = 0;
+    d = 0;
+    for (i = 0; i < Ne; i ++)
+    {
+        for (j = i + 1; j < Ne; j ++)
+        {
+            if (
+                !(
+                    is_In_Outside_Edge_Node_Set(i)
+                    &&
+                    is_In_Inside_Edge_Node_Set(j)
+                )
+                &&
+                !(
+                    is_In_Outside_Edge_Node_Set(j)
+                    &&
+                    is_In_Inside_Edge_Node_Set(i)
+                )
+                &&
+                is_feasible_lightpath[i][j] == 1
+            )
+            {
+                for (z = 0; z < Z; z ++)
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+
+                            if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                            {
+                                ii ++;
+                                item_num = 0;
+
+                                for (n = 0; n < N; n ++)
+                                {
+                                    if (
+                                        ((V[n] != Ve[i]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                        ||
+                                        ((V[n] != Ve[i]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, Ve[i], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                                if (item_num > 0)
+                                {
+                                    pcurrent_var = Get_VarID_V(z, w, i, j);
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                    B = 0;
+                                    R = 0; //0: =    1: <=
+                                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                                } else {
+                                    ii --;
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    printf("*WA2 constraint %ld Sum(n)[P(i,n),ij,w,z] = Vijwz Eq.(8).\n", ii); //PNET 2020  CSPT
+    //NICT2022 DCPs ECOC2022
+
+    ////////
+    /////////
+    //5
+    //NICT20140217
+    // Wavelength routing 3 Eq.(9)
+    s = 0;
+    d = 0;
+    for (i = 0; i < Ne; i ++)
+    {
+        for (j = i + 1; j < Ne; j ++)
+        {
+            if (
+                !(
+                    is_In_Outside_Edge_Node_Set(i)
+                    &&
+                    is_In_Inside_Edge_Node_Set(j)
+                )
+                &&
+                !(
+                    is_In_Outside_Edge_Node_Set(j)
+                    &&
+                    is_In_Inside_Edge_Node_Set(i)
+                )
+                &&
+                is_feasible_lightpath[i][j] == 1
+            )
+            {
+                for (z = 0; z < Z; z ++)
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+
+                            if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                            {
+                                ii ++;
+                                item_num = 0;
+
+                                for (m = 0; m < N; m ++)
+                                {
+                                    if (
+                                        ((V[m] != Ve[j]) && (U_w_m_n[w][V[m]][Ve[j]] == 0))
+                                        ||
+                                        ((V[m] != Ve[j]) && (is_test_set[V[m]][Ve[j]] > 0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], Ve[j]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                                if (item_num > 0)
+                                {
+
+                                    pcurrent_var = Get_VarID_V(z, w, i, j);
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                    B = 0;
+                                    R = 0; //0: =    1: <=
+                                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                                } else {
+                                    ii --;
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    printf("*WA3 constraint %ld Sum(m)[P(m,j),ij,wz] = Vijwz  any ij w  Eq.(8).\n", ii);    //PNET 2020  MCSPT
+    //NICT2022 DCPs ECOC2022
+    ////////
+    /////////
+    //6
+
+    // Wavelength routing 1_2   V(w,i,j) = V(w,j,i)  Eq.(10) Any ij (i<j)
+
+    for (z = 0; z < Z; z ++)
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i++)
+                {
+                    for (j = i + 1; j < Ne; j ++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            ii ++;
+                            item_num = 0;
+                            pcurrent_var = Get_VarID_V(z, w, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) ++;
+
+
+                            pcurrent_var = Get_VarID_V(z, w, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) --;
+
+                            B = 0;
+                            R = 0; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+
+                        }
+                    }
+                }
+            }
+
+        }
+
+    printf("*New constraint %ld V(z,w,i,j) = V(z,w,j,i) Any ij (i<j) generatred from Eq.(8,9)\n", ii);
+    //NICT2022 concurrent DCPs ECOC2022
+
+    /*
+    for (i = 0; i < Np; i++)
+    {
+        for (j = 0; j < Np; j ++)
+        {
+            if((i != j)
+                &&(EPOC_Matrix[Vpe[i]][Vpe[j]] == 1)
+            )
+            {
+                ii ++;
+                for (c = 0; c < C; c ++)
+                {
+                    for (w = lambda_start; w < lambda_end; w ++)
+                    {
+                        pcurrent_var = Get_VarID_V(w, Vpe[i], Vpe[j]);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) --;
+                    }
+                }
+                B = -1;
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            }
+        }
+    }
+
+    printf("*New constraint %ld Sum(w)V(w,i,j) >=1  Any ij (i<>j) in EPOC set. Eq.(15)\n", ii);
+    */
+
+
+
+
+
+    //8
+    //One wavelength per path constraints
+
+    for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+    {
+        for (n = m + 1; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+        {
+            if (is_test_set[V[m]][V[n]] == 0)
+            {
+                for (w = lambda_start; w < lambda_end; w ++)
+                {
+                    if (U_w_m_n[w][V[m]][V[n]] == 0)
+                    {
+                        ii ++;
+
+                        item_num = 0;
+                        s = 0; //dummy
+                        d = 0; //dummy
+                        for (z = 0; z < Z; z ++)
+                            for (c = 0; c < C; c ++)
+                            {
+                                for (i = 0; i < Ne; i++)
+                                {
+                                    for (j = i + 1; j < Ne; j ++)
+                                    {
+                                        if ((F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                                                &&
+                                                !(
+                                                    is_In_Outside_Edge_Node_Set(i)
+                                                    &&
+                                                    is_In_Inside_Edge_Node_Set(j)
+                                                )
+                                                &&
+                                                !(
+                                                    is_In_Outside_Edge_Node_Set(j)
+                                                    &&
+                                                    is_In_Inside_Edge_Node_Set(i)
+                                                )
+                                                &&
+                                                is_feasible_lightpath[i][j] == 1
+                                           ) // && (Ve[j] != V[m]) && (Ve[i] != V[n]) && (i != d) && (j != s))
+                                        {
+                                            item_num ++;
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], V[n]);
+                                            jj = * pcurrent_var;
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) ++;
+
+                                            pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[n], V[m]);
+                                            jj = * pcurrent_var;
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) ++;
+                                        }
+                                    }
+                                }
+                            }
+
+                        if (item_num > 0)
+                        {
+                            B = 1;
+                            R = 1; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                        } else {
+                            ii --;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    printf("*OneWave constraint 1 %ld Sum(i,j)[Pmn+Pnm] <= 1 for coroute constraint Eq.(10).\n", ii);//Eq (10) is the eq no. in PNET 2020  CSPT
+
+    //NICT2022 concurrent DCPs ECCO2022
+
+
+
+    for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+    {
+        for (n = m + 1; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+        {
+            if (is_test_set[V[m]][V[n]] > 0)
+            {
+                for (w = lambda_start; w < lambda_end; w ++)
+                {
+                    ii ++;
+                    item_num = 0;
+                    s = 0; //dummy
+                    d = 0; //dummy
+                    for (z = 0; z < Z; z ++)
+                        for (c = 0; c < C; c ++)
+                        {
+                            for (i = 0; i < Ne; i++)
+                            {
+                                for (j = i + 1; j < Ne; j ++)
+                                {
+                                    if ((F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                                            &&
+                                            !(
+                                                is_In_Outside_Edge_Node_Set(i)
+                                                &&
+                                                is_In_Inside_Edge_Node_Set(j)
+                                            )
+                                            &&
+                                            !(
+                                                is_In_Outside_Edge_Node_Set(j)
+                                                &&
+                                                is_In_Inside_Edge_Node_Set(i)
+                                            )
+                                            &&
+                                            is_feasible_lightpath[i][j] == 1
+                                       ) // && (Ve[j] != V[m]) && (Ve[i] != V[n]) && (i != d) && (j != s))
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[n], V[m]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                            }
+                        }
+
+                    if (item_num > 0)
+                    {
+                        pcurrent_var = Get_VarID_B(V[m], V[n]);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) --;
+                        B = 0;
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+                }
+            }
+        }
+    }
+
+
+    printf("*OneWave constraint 2 %ld Sum(i,j)[Pmn+Pnm] <= Beta_mn for coroute constraint Eq.(11).\n", ii);//Eq (11) is the eq no. in PNET 2020  MCSPT
+    //NICT2022 concurrent DCPs ECOC2022
+
+    //NICT20220417 concurrent DCPs ECOC2022  Eq.(24)  M_{mn}^{ij} > (Sum[w]P_{mn}^{ijw})/BIGNUM  for any (m,n) (i,j)
+
+    for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+    {
+        for (n = m + 1; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+        {
+
+            if ((Link[V[m]][V[n]] == 0)
+                    ||
+                    (is_test_set[V[m]][V[n]] > 0)
+               ) {
+
+                s = 0; //dummy
+                d = 0; //dummy
+                for (z = 0; z < Z; z ++)
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (i = 0; i < Ne; i++)
+                        {
+                            for (j = i + 1; j < Ne; j ++)
+                            {
+                                if (//(F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                                    //  &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(i)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(j)
+                                    )
+                                    &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(j)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(i)
+                                    )
+                                    &&
+                                    is_feasible_lightpath[i][j] == 1
+                                ) // && (Ve[j] != V[m]) && (Ve[i] != V[n]) && (i != d) && (j != s))
+                                {
+
+                                    ii ++;
+                                    item_num = 0;
+
+                                    for (w = lambda_start; w < lambda_end; w ++)
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[m], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++ ;
+
+                                        pcurrent_var = Get_VarID_P(s, d, z, c, w, i, j, V[n], V[m]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+
+                                    if (item_num > 0)
+                                    {
+                                        pcurrent_var = Get_VarID_M(i, j, V[m], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) = (-1) * BIGNUM;
+
+                                        pcurrent_var = Get_VarID_M( i, j, V[n], V[m]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) = (-1) * BIGNUM;
+
+                                        B = 0;
+                                        R = 1; //0: =    1: <=
+                                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                                    } else {
+                                        ii --;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+            }
+        }
+    }
+
+
+    printf("*Multipath Co-Route constraint-1 %ld M_{mn}^{ij} + M_{nm}^{ij} >= (Sum[w][P_{mn}^{ijw} + P_{mn}^{ijw}])/BIGNUM for any (m,n) (i,j) Eq.(24).\n", ii);
+    //NICT2022 concurrent DCPs ECOC2022
+    ////////
+    /////////
+    //7
+
+    //Degree limit Eq(15).
+    for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+    {
+        B = 0;
+
+        for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+        {
+            if (isTest(V[m],V[n]))
+            {
+                B = 1;
+                break;
+            }
+        }
+
+        if (B == 1)
+        {
+            ii ++;
+            item_num = 0;
+            for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+            {
+                if (isTest(V[m],V[n]))
+                {
+                    item_num ++;
+                    if (V[m] < V[n])
+                    {
+                        pcurrent_var = Get_VarID_B(V[m], V[n]);
+                    } else if (V[m] > V[n])
+                    {
+                        pcurrent_var = Get_VarID_B(V[n], V[m]);
+                    }
+
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+                }
+            }
+            if (item_num > 0)
+            {
+                B = 0;
+                for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+                {
+                    if (Link[V[m]][V[n]] == 0) //define 0:there is a link, 1: no link. Merely for convenience. normally, 1 there is a surviving link... Because matrix Link uses the similar value of U[W][N][N], easy to change value in program.
+                    {
+                        B ++ ;
+                    }
+
+                }
+
+                B = degree_limit[V[m]] - B;
+
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            } else {
+                ii --;
+            }
+        }
+    }
+
+    printf("*Degree limit 1 %ld Sum[Beta_mn] + Sum[Lmn] <= Dm Eq(12).\n", ii); //PNET 2020  CSPT
+
+
+
+
+    //NICT20140217 Traffic-1 constraint    sum(X_asdij) = sum(Xsdkj)  any s,d, k (k!=s!=d) Eq.(16)
+
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+    {
+        s = source[node_pair_id];
+        d = dest[node_pair_id];
+        a = customer_carrier_customer_id[node_pair_id];
+        for (k = 0; k < Ne; k ++)
+        {
+            if ( k != s && k != d && (F_i[Ve[k]] > 0))
+            {
+                ii ++;
+
+                item_num = 0;
+                for (i = 0; i < Ne; i++)
+                {
+                    if ((i != d) && (i != k) && (F_i[Ve[i]] > 0)
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(i)
+                                &&
+                                is_In_Inside_Edge_Node_Set(k)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(k)
+                                &&
+                                is_In_Inside_Edge_Node_Set(i)
+                            )
+                            &&//three relation  X_asdij:    si, dj, ij ??
+                            is_feasible_lightpath[i][k] == 1
+                            /*
+                            &&
+                            (
+                                (i == s)
+                                ||
+                                is_feasible_lightpath[s][i] == 1
+                            )
+                            &&
+                            (
+                                (d == k)
+                                ||
+                                is_feasible_lightpath[d][k] == 1
+                            )
+                            */
+
+                       )
+                    {
+
+                        item_num ++;
+                        pcurrent_var = Get_VarID_X(a, s, d, i, k);
+
+                        jj = * pcurrent_var;
+
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+                    }
+                }
+
+                for (j = 0; j < Ne; j ++)
+                {
+                    if ((j != s) && (j != k) && (F_i[Ve[j]] > 0)
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(j)
+                                &&
+                                is_In_Inside_Edge_Node_Set(k)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(k)
+                                &&
+                                is_In_Inside_Edge_Node_Set(j)
+                            )
+                            &&//three relation  X_asdij:    si, dj, ij
+                            is_feasible_lightpath[k][j] == 1
+                            /*
+                            &&
+                            (
+                                (d == j)
+                                ||
+                                is_feasible_lightpath[d][j] == 1
+                            )
+                            &&
+                            (
+                                (s == k)
+                                ||
+                                is_feasible_lightpath[s][k] == 1
+                            )
+                            */
+                       )
+                    {
+                        item_num ++;
+                        pcurrent_var = Get_VarID_X(a, s, d, k, j);
+
+                        jj = * pcurrent_var;
+
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) --;
+                    }
+                }
+                if (item_num > 0)
+                {
+                    B = 0;
+                    R = 0; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                } else {
+                    ii --;
+                }
+
+            }
+        }
+    }
+
+
+    printf("*Traffic-1 constraint %ld   sum(Lambda_sdik) = sum(Lambda_sdkj)  any s,d, k (k!=s!=d) Eq.(13) \n", ii);//Eq (13) is the eq no. in PNET 2020  MCSPT
+
+    //NICT2022 concurrent DCPs ECOC2022
+
+
+//NICT20140217  Traffic-2 constraint sum(Xsdsj)=Casd , say, sum(Lambda_sdsj) = alpha_sd Eq.(14).
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+    {
+        s = source[node_pair_id];
+        d = dest[node_pair_id];
+        a = customer_carrier_customer_id[node_pair_id];
+        if ((F_i[Ve[s]] > 0) && (F_i[Ve[d]] > 0))
+        {
+            ii ++;
+            item_num = 0;
+            for (j = 0; j < Ne; j ++)
+            {
+                if ((j != s) && (F_i[Ve[j]] > 0)
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(s)
+                            &&
+                            is_In_Inside_Edge_Node_Set(j)
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(j)
+                            &&
+                            is_In_Inside_Edge_Node_Set(s)
+                        )
+                        &&//three relation  X_asdij:    si, dj, ij
+                        is_feasible_lightpath[s][j] == 1
+                        /*
+                        &&
+                        (
+                            d == j
+                            ||
+                            is_feasible_lightpath[d][j] == 1
+                        )
+                        */
+                   )
+                {
+
+                    item_num ++;
+                    pcurrent_var = Get_VarID_X(a, s, d, s, j);
+
+                    jj = * pcurrent_var;
+
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+
+                }
+            }
+
+            if (item_num > 0)
+            {
+                pcurrent_var = Get_VarID_C(a, s, d);
+                jj = * pcurrent_var;
+                pcurrent_element = Get_Element(ii,jj,pElementID);
+                (*pcurrent_element) --;
+                B = 0;
+                R = 0; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            } else {
+                ii --;
+            }
+        }
+
+    }
+    printf("*Traffic-2  constraint %ld sum(Xasdsj)=Casd Eq.(14)\n", ii);//Eq (14) is the eq no. in PNET 2020  CSPT
+    //NICT2022 concurrent DSPs ECOC2022
+
+//NICT20140217  Traffic-2 constraint sum(Xsdid)=Casd Eq.(15).
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+    {
+        s = source[node_pair_id];
+        d = dest[node_pair_id];
+        a = customer_carrier_customer_id[node_pair_id];
+        if ((F_i[Ve[s]] > 0) && (F_i[Ve[d]] > 0))
+        {
+            ii ++;
+            item_num = 0;
+            for (i = 0; i < Ne; i ++)
+            {
+                if ((i != d)  && (F_i[Ve[i]] > 0)
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(i)
+                            &&
+                            is_In_Inside_Edge_Node_Set(d)
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(d)
+                            &&
+                            is_In_Inside_Edge_Node_Set(i)
+                        )
+                        &&//three relation  X_asdij:    si, dj, ij
+                        is_feasible_lightpath[i][d] == 1
+                        /*
+                        &&
+                        (
+                            (s == i)
+                            ||
+                            is_feasible_lightpath[s][i] == 1
+                        )
+                        */
+                   )
+                {
+
+                    item_num ++;
+                    pcurrent_var = Get_VarID_X(a, s, d, i, d);
+
+                    jj = * pcurrent_var;
+
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+
+                }
+            }
+
+            if (item_num > 0)
+            {
+
+                pcurrent_var = Get_VarID_C(a, s, d);
+                jj = * pcurrent_var;
+                pcurrent_element = Get_Element(ii,jj,pElementID);
+                (*pcurrent_element) --;
+                B = 0;
+                R = 0; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            } else {
+                ii --;
+            }
+        }
+    }
+    printf("*Traffic-2  constraint %ld sum(Xasdid)=Casd Eq.(15)\n", ii);//Eq (15) is the eq no. in PNET 2020  CSPT
+    //NICT2022 concurrent DCPs ECOC2022
+
+    ////////
+    /////////
+    //8
+    //NICT20140217 Traffic-3 constraint    sum(X_asdij +Xsdji) = sum(Vzwij)  any i,j (i!=j) Eq.(19)
+
+
+    /* NICT 20210831 the PNET 2020  version Eq. 16-19 are modefied. The following is the Eq. 16-19 in PNET 2020.
+    for (i = 0; i < Np; i++)
+    {
+        if (F_i[Vp[i]] > 0)
+        {
+            for (j = i + 1; j < Np; j++)
+            {
+                if (
+    	        (is_Required_to_Sell_EPOC_Lightpath[i][j] > 0) // say, where Order_Request[i][j] > 0,  //required by other carriers and should be created by this carrier herself to sell to other carriers
+    	     &&
+    	     F_i[Vp[j]] > 0
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(Vpe[i])
+                            &&
+                            is_In_Inside_Edge_Node_Set(Vpe[j])
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(Vpe[j])
+                            &&
+                            is_In_Inside_Edge_Node_Set(Vpe[i])
+                        )
+                        &&
+                        is_feasible_lightpath[Vpe[i]][Vpe[j]] == 1
+                   )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+
+                        if ( Vpe[i] != d && Vpe[j] != s
+
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == i
+                            //        ||
+                            //        is_feasible_lightpath[s][i] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == j
+                            //        ||
+                            //        is_feasible_lightpath[d][j] == 1
+                            //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, Vpe[i], Vpe[j]);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+
+                        }
+
+                        if ( Vpe[j] != d && Vpe[i] !=s
+
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == j
+                            //        ||
+                            //        is_feasible_lightpath[s][j] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == i
+                            //        ||
+                            //        is_feasible_lightpath[d][i] == 1
+                            //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, Vpe[j], Vpe[i]);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+                            pcurrent_var = Get_VarID_V(w, Vpe[i], Vpe[j]);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = - Capacity_of_Lightpath;
+
+                        }
+                        B = -1 * Capacity_of_Lightpath * Order_Request[i][j];//B = 0;//Order_Request(i,j) indicates the amount of lightpaths between EPOC node pair (i,j) for selling to other carrier(s).
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) < C * (sum(Vzwij) - Oij) any i,j  (i!=j) Eq.(17) \n", ii); //update the eq (17) PNET 2020 CSPT
+
+
+    for (i = 0; i < Np; i++)
+    {
+        if ( F_i[Vp[i]] > 0)
+        {
+            for (j = i+1; j < Np; j++)
+            {
+                if (
+                    (is_feasible_to_Buy_EPOC_lighpath[i][j] > 0) // need other carriers help
+                    &&
+                    (is_Required_to_Sell_EPOC_Lightpath[i][j] == 0) // no request to sell this path
+                    &&
+                    F_i[Vp[j]] > 0
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(Vpe[i])
+                            &&
+                            is_In_Inside_Edge_Node_Set(Vpe[j])
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(Vpe[j])
+                            &&
+                            is_In_Inside_Edge_Node_Set(Vpe[i])
+                        )
+                        &&
+                        is_feasible_lightpath[Vpe[i]][Vpe[j]] == 1
+                   )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+
+                        if ( Vpe[i] != d && Vpe[j]!= s
+
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == Vpe[i]
+                            //        ||
+                            //        is_feasible_lightpath[s][Vpe[i]] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == Vpe[j]
+                            //        ||
+                            //        is_feasible_lightpath[d][Vpe[j]] == 1
+                            //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, Vpe[i], Vpe[j]);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+
+                        }
+
+                        if ( Vpe[j] != d && Vpe[i] != s
+
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == Vpe[j]
+                            //        ||
+                            //        is_feasible_lightpath[s][Vpe[j]] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == Vpe[i]
+                            //        ||
+                            //        is_feasible_lightpath[d][Vpe[i]] == 1
+                            //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, Vpe[j], Vpe[i]);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+                            pcurrent_var = Get_VarID_V(w, Vpe[i], Vpe[j]); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                            jj = * pcurrent_var;
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = -1*Capacity_of_Lightpath;
+
+                        }
+
+                        pcurrent_var = Get_VarID_D(Vpe[i], Vpe[j]);// a = 0, means that delta ij,a needs anyother carriers service, don't care which carrier should be selected.
+
+                        jj = * pcurrent_var;
+
+                        printf("VarDelta Vpe[i], %d , Vpe[j] %d, var ID %ld pcurrent_var %ld **************\n",Vpe[i],Vpe[j], jj, pcurrent_var);
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) = -1 * Capacity_of_Lightpath;
+
+                        B = 0;
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) <= C * [Delta_ij^a + Sum[w](V_ij^w)] any i,j (i!=j) in EPOC link set which should be created by other carriers Eq.(18) \n", ii);
+
+
+    for (i = 0; i < Ne; i++) //This is for all the lightpath including EPOC and non-EPOC lightpaths
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+
+                if (
+                    (   Vep[i] == -1
+                        ||
+                        Vep[j] == -1
+                        ||
+                        (
+                           (Vep[i]!= -1 && Vep[j] != -1 && is_feasible_to_Buy_EPOC_lighpath[Vep[i]][Vep[j]] == 0) // no need other carriers help
+                           &&
+                           (Vep[i]!= -1 && Vep[j] != -1 && is_Required_to_Sell_EPOC_Lightpath[Vep[i]][Vep[j]] == 0)
+                        )
+                    )// no need other carriers help
+                    &&
+                    F_i[Ve[j]] > 0
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(i)
+                            &&
+                            is_In_Inside_Edge_Node_Set(j)
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(j)
+                            &&
+                            is_In_Inside_Edge_Node_Set(i)
+                        )
+                        &&
+                        is_feasible_lightpath[i][j] == 1
+                   )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+
+                        if ( i != d && j != s
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == Vpe[i]
+                            //        ||
+                            //        is_feasible_lightpath[s][Vpe[i]] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == Vpe[j]
+                            //        ||
+                            //        is_feasible_lightpath[d][Vpe[j]] == 1
+                            //    )
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                            //    &&
+                            //    (  //three relation  X_asdij:    si, dj, ij
+                            //        s == Vpe[j]
+                            //        ||
+                            //        is_feasible_lightpath[s][Vpe[j]] == 1
+                            //    )
+                            //    &&
+                            //    (
+                            //        d == Vpe[i]
+                            //       ||
+                            //        is_feasible_lightpath[d][Vpe[i]] == 1
+                            //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = Traffic_Matrix[s][d];
+                        }
+                    }
+
+                    for (w = lambda_start; w < lambda_end; w ++)
+                    {
+                        pcurrent_var = Get_VarID_V(w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) = -1*Capacity_of_Lightpath;
+                    }
+
+
+                    if (item_num > 0)
+                    {
+                        B = 0;
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) <= C * Sum[w](V_ij^w)] any i,j (i!=j) in EPOC link set which should be created by other carriers Eq.(116), not allowed to sell, and not allow to buy. Have to recovery by carrier herself.) \n", ii); //Original Eq (16) in PNET 2020 . This should be carefully noted.
+
+
+
+
+    for (i = 0; i < Np; i++)
+    {
+        for (j = 0; j < Np; j ++)
+        {
+            if((i != j)
+               &&
+                (is_Required_to_Sell_EPOC_Lightpath[i][j] > 0) // say, where Order_Request[i][j] > 0,  //required by other carriers and should be created by this carrier herself to sell to other carriers
+    	    //    &&(EPOC_Matrix[Vpe[i]][Vpe[j]] == 1) //stands for that there are requests from other carriers, need to recover the optical network, create lightpath and sell to other carriers
+            )
+            {
+                ii ++;
+                for (c = 0; c < C; c ++)
+                {
+                    for (w = lambda_start; w < lambda_end; w ++)
+                    {
+                        pcurrent_var = Get_VarID_V(w, Vpe[i], Vpe[j]); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) --;
+                    }
+                }
+                B = -1* Order_Request[i][j]; //Order_Request(i,j) indicates the amount of lightpaths between EPOC node pair (i,j) for selling to other carrier(s).
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            }
+        }
+    }
+
+    printf("*New constraint %ld Sum(w)V(w,i,j) >= Oij  Any ij (i<>j) in EPOC set. Eq.(19)\n", ii);
+
+    */
+
+    // Begin of modifcatio for ESEN + DCI 20210831 vvvvvvvvvvvvvvvvv
+    // Different situations for lightpaths use.
+    //    --------------------------
+    //    | All node ----------    |
+    //    | pairs    | PHI    |    |
+    //    |          |        |    |
+    //    |  ------------     |    |
+    //    |  |       |  |     |    |
+    //    |  |  PI   ----------    |
+    //    |  |          |          |
+    //    |  ------------          |
+    //    |                        |
+    //    --------------------------
+    //
+    // PHI: [BUY]   the set of ESEN node pairs which can buy the lightpath supports from counterpart carriers via ESE. Need to map to the edge nodes
+    //              is_feasible_to_Buy_EPOC_lighpath[ESEN nodei][ESEN node j]
+    //              Note: * need to map ESEN node ID to edge node ID
+    // PI:  [SELL]  the set of edge node pairs (including both the non-ESEN and ESEN node pairs) for the lightpath supports (including both the ESEN lightpath supports and the customer (e.g., DCI) required lightpaths.
+    //              is_Required_to_Sell_Lightpath[Edge node i][Edge node j]
+
+    // Between a candidate edge node pair (i, j) of a lightpath, there would be different situations:
+    // (1) in PHI (without PI), both self-established lightpaths and extra lightpath(s) (i.e., lightpath support(s)) from counterpart carriers are possible.
+    //     sum[w](V_ij^w) + delta_ij are possible to use by carrier to carry the IP-over-WDM traffic.
+
+    // (2) in PI (without PHI), some self-established lightpaths are used by the carrier him/herself, while, some self-established lightpaths are offered to the customers and counterpart carriers (cannot be used for the carrier him/herself.
+    //     sum[w](V_ij^w) - sum[a](o_ij^a) are possible to use by carrier to carry the IP-over-WDM traffic.
+
+    // (3) In the intersection of PHI and PI, some self-established lightpaths are used by the carrier him/herself, while, some self-established lightpaths are offered to the customers and counterpart carriers (cannot be used for the carrier him/herself. In addition, extra lightpath(s) (i.e., lightpath support(s)) from counterpart carriers are possible.
+    //     sum[w](V_ij^w) + delta_ij - sum[a](o_ij^a) are possible to use by carrier to carry the IP-over-WDM traffic.
+
+    // (4) In All node pair set without PHI and PI, all the lightpaths are established and used by the carrier him/herself to carrier the IP-over-WDM traffic.
+    //     sum(V_ij^w) are used by carrier to carry the IP-over-WDM traffic.
+
+    
+        //Sitiuation (1) sum(V_ij^w) for not( PHI or PI) condition
+    for (i = 0; i < Ne; i++) //This is for all the lightpath including ESEN and non-EPOC lightpaths
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+
+                if (
+                    (  // Vep[i] == -1
+                        // ||
+                        // Vep[j] == -1
+                        // ||
+                        // (
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_feasible_to_Buy_EPOC_lighpath[Vep[i]][Vep[j]] == 0) // no need other carriers help
+                        //    &&
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_Required_to_Sell_EPOC_Lightpath[Vep[i]][Vep[j]] == 0)
+                        // )
+                        is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] == 0 // say, not in PHI, no need other carriers help
+                        &&
+                        Segment_Recovery_Task_Sharing[i][j].role != 2
+                        &&
+                        is_Required_to_Sell_Lightpath[i][j] == 0 // say, not in PI, no request for lightpath by customer and counterpart carriers
+                    )
+                    &&
+                    F_i[Ve[j]] > 0
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+                        if ( i != d && j != s
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[i]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[j]] == 1
+                                //    )
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[j]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[i]
+                                //       ||
+                                //        is_feasible_lightpath[d][Vpe[i]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (z = 0; z < Z; z ++)
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+
+                        B = 0;
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_asd*(X_asdij +Xasdji)) <= C * Sum[w](V_ij^wz)] any i,j (i!=j) in All of the node pairs but neither required by customer/carriers nor are offerable by counterpart carriers. Eq.(16)) \n", ii); //Original Eq (16) in PNET 2020 . This should be carefully noted.
+    
+       
+        //Sitiuation (4) sum(V_ij^w) + sum(H_ij^a) for not( PHI or PI) condition
+    for (i = 0; i < Ne; i++) //This is for all the lightpath including ESEN and non-EPOC lightpaths
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+
+                if (
+                    (  // Vep[i] == -1
+                        // ||
+                        // Vep[j] == -1
+                        // ||
+                        // (
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_feasible_to_Buy_EPOC_lighpath[Vep[i]][Vep[j]] == 0) // no need other carriers help
+                        //    &&
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_Required_to_Sell_EPOC_Lightpath[Vep[i]][Vep[j]] == 0)
+                        // )
+                        
+                        //////////for JOCN-ONDM-SI
+                        is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] == 0 // say, not in PHI, no need other carriers help
+                        //NICT 20230911 Very important!!!!!!!!!!!!!!   if there are counerpart carreirs who will sell the surviving lightpath support (i), due to the high price, this is still need recovery. So the lightpath surpport (ii) must be allowd. 
+                        &&
+                        
+                        Segment_Recovery_Task_Sharing[i][j].role == 2 //!!!!!!! this carrier is a demander of lightpath support (ii). NICT 20230911
+                        &&
+                        is_Required_to_Sell_Lightpath[i][j] == 0 // say, not in PI, no request for lightpath by customer and counterpart carriers
+                    )
+                    &&
+                    F_i[Ve[j]] > 0
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+                        if ( i != d && j != s
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[i]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[j]] == 1
+                                //    )
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[j]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[i]
+                                //       ||
+                                //        is_feasible_lightpath[d][Vpe[i]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (z = 0; z < Z; z ++)
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+
+                        B = 0;
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Given_Lightpath_Support_II_By_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                B = B + is_Given_Lightpath_Support_II_By_Carrier[i][j][a];
+                            }
+                        }
+                        B = (long int) B * (long int) (Capacity_of_Lightpath);
+                        
+                        
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_asd*(X_asdij +Xasdji)) <= C * ( Sum[w](V_ij^wz) + Sum[a](H_ij^a) ) for any i,j (i!=j) in All of the node pairs but neither required by customer/carriers nor are offerable by counterpart carriers. but this segment (i,j) is to be offered by counterpart carriers, which is assigned in PSMT. Eq.(17.1)) \n", ii); 
+
+        //Sitiuation (4) sum(V_ij^w) + sum(H_ij^a) for not( PHI or PI) condition
+    for (i = 0; i < Ne; i++) //This is for all the lightpath including ESEN and non-EPOC lightpaths
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+
+                if (
+                    (  // Vep[i] == -1
+                        // ||
+                        // Vep[j] == -1
+                        // ||
+                        // (
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_feasible_to_Buy_EPOC_lighpath[Vep[i]][Vep[j]] == 0) // no need other carriers help
+                        //    &&
+                        //    (Vep[i]!= -1 && Vep[j] != -1 && is_Required_to_Sell_EPOC_Lightpath[Vep[i]][Vep[j]] == 0)
+                        // )
+                        
+                        //////////for JOCN-ONDM-SI
+                        is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] > 0 // say, not in PHI, no need other carriers help
+                        //NICT 20230911 Very important!!!!!!!!!!!!!!   if there are counerpart carreirs who will sell the surviving lightpath support (i), due to the high price, this is still need recovery. So the lightpath surpport (ii) must be allowd. 
+                        &&
+                        
+                        Segment_Recovery_Task_Sharing[i][j].role == 2 //!!!!!!! this carrier is a demander of lightpath support (ii). NICT 20230911
+                        &&
+                        is_Required_to_Sell_Lightpath[i][j] == 0 // say, not in PI, no request for lightpath by customer and counterpart carriers
+                    )
+                    &&
+                    F_i[Ve[j]] > 0
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+                        if ( i != d && j != s
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[i]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[j]] == 1
+                                //    )
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[j]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[i]
+                                //       ||
+                                //        is_feasible_lightpath[d][Vpe[i]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (z = 0; z < Z; z ++)
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+                            
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                pcurrent_var = Get_VarID_D(i, j, a);// Which carrier should be selected? this is not a issue so far. Means that delta ij,a needs anyother carriers service, don't care which carrier should be selected. Because only the carrier who offers the lowest price will be considered. If two or more carriers offer the same lowest price, randomly selecte one carrier or based on a predefined policy, which will be future work.
+                            
+                                jj = * pcurrent_var;
+                                
+                                printf("VarDelta i, %d , j %d, a %d, var ID %ld pcurrent_var %ld **************\n",i, j, a, jj, pcurrent_var);
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+                        }
+
+                        B = 0;
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Given_Lightpath_Support_II_By_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                B = B + is_Given_Lightpath_Support_II_By_Carrier[i][j][a];
+                            }
+                        }
+                        B = (long int) B * (long int) (Capacity_of_Lightpath);
+                        
+                        
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_asd*(X_asdij +Xasdji)) <= C * ( Sum[w](V_ij^wz) + Sum[a](H_ij^a) ) for any i,j (i!=j) in All of the node pairs but neither required by customer/carriers nor are offerable by counterpart carriers. but this segment (i,j) is to be offered by counterpart carriers, which is assigned in PSMT. Eq.(17.2)) \n", ii); 
+
+    
+    //NICT2022 concurrent DCPs ECOC2022
+
+    //Situation (2), sum(V_ij^w) - sum[a](o_ij^a) for PI - PHI condition
+    for (i = 0; i < Ne; i++)
+    {
+        if (F_i[Ve[i]] > 0)
+        {
+            for (j = i + 1; j < Ne; j++)
+            {
+                if (
+                    (is_Required_to_Sell_Lightpath[i][j] > 0) // say, edge node pair (i, j) is in PI
+                     &&
+                    (is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] == 0) // say, edge node pair (i, j) is not in PHI
+                    &&
+                    (Segment_Recovery_Task_Sharing[i][j].role != 2)
+                    &&
+                    (F_i[Ve[j]] > 0)
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+
+                        if ( i != d && j != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == i
+                                //        ||
+                                //        is_feasible_lightpath[s][i] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == j
+                                //        ||
+                                //        is_feasible_lightpath[d][j] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i !=s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == j
+                                //        ||
+                                //        is_feasible_lightpath[s][j] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == i
+                                //        ||
+                                //        is_feasible_lightpath[d][i] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (z = 0; z < Z; z ++)
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j);
+
+                                jj = * pcurrent_var;
+
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+
+                            }
+
+                        for (a = 0; a < A; a ++)
+                        {
+                            if( is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0 )
+                            {
+                                pcurrent_var = Get_VarID_O(i, j, a);
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                //(*pcurrent_element) =  (long int) Capacity_of_Lightpath;
+                                //Important change Oija is changed from integer to binary.
+                                (*pcurrent_element) =  (long int) Capacity_of_Lightpath * is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a];
+                            }
+                        }
+
+                        B = 0; // sum(T_sd*Lambda_ij^sd) <= C[ sum(v_ij^w) - o_ij ]  for any edge node i, j|i != j and (i, j) in PI - PHI
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) < C * (sum(Vzwij) - sum[a](o_ij^a)) any i,j  (i!=j) Eq.(18) \n", ii); //update the eq (17) PNET 2020  CSPT
+    //NICT2022 concurrent DCPs ECOC2022
+
+    
+    //Situation (1), sum(V_ij^w) + delta_ij for PHI - PI condition
+    for (i = 0; i < Ne; i++)
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+                if (
+                    (
+                        (is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] > 0)
+                        //||
+                        //(Segment_Recovery_Task_Sharing[i][j].role == 2)
+                    ) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.
+                    &&
+                    Segment_Recovery_Task_Sharing[i][j].role != 2 //!!!!!!! this carrier is a demander of lightpath support (ii). NICT 20230911
+                    &&
+                    (
+                        (is_Required_to_Sell_Lightpath[i][j] == 0) // say, not in PI, edge node pair (i, j) is not in PI, no request to sell this path
+                    )
+                    &&
+                    F_i[Ve[j]] > 0
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    //for (node_pair_id = 0; node_pair_id < Total_number_of_requests - Total_number_of_Sell_lightpath_supports_II; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+                        if ( i != d && j != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[i]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[j]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[j]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[i]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) = (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+
+                        for (z = 0; z < Z; z ++)
+                        {
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ( (-1) * Capacity_of_Lightpath);
+
+                            }
+                        }
+                        
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                pcurrent_var = Get_VarID_D(i, j, a);// Which carrier should be selected? this is not a issue so far. Means that delta ij,a needs anyother carriers service, don't care which carrier should be selected. Because only the carrier who offers the lowest price will be considered. If two or more carriers offer the same lowest price, randomly selecte one carrier or based on a predefined policy, which will be future work.
+                            
+                                jj = * pcurrent_var;
+                                
+                                printf("VarDelta i, %d , j %d, a %d, var ID %ld pcurrent_var %ld **************\n",i, j, a, jj, pcurrent_var);
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+                        }
+                            
+                        B = 0;
+                        /*
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Given_Lightpath_Support_II_By_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                B = B + is_Given_Lightpath_Support_II_By_Carrier[i][j][a];
+                            }
+                        }
+                        B = (long int) B * (long int) (Capacity_of_Lightpath);
+                        */
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) <= C * [sum[a](Delta_ij^a) + Sum[w](V_ij^w)] any i,j (i!=j) in ESEN link set which should be created by other carriers Eq.(19) \n", ii);
+    
+
+    //Situation (3), sum(V_ij^w) + delta_ij - sum[a](o_ij^a) for PHI and PI condition
+    for (i = 0; i < Ne; i++)
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+
+                if (
+                    (
+                        (is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[i][j] > 0)
+                        //||
+                        //(Segment_Recovery_Task_Sharing[i][j].role == 2)
+                    ) 
+                    &&
+                    (is_Required_to_Sell_Lightpath[i][j] > 0) // say, in PI, edge node pair (i, j) is not in PI, no request to sell this path
+                    &&
+                    F_i[Ve[j]] > 0
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    ii ++;
+
+                    item_num = 0;
+
+                    //Should exclude the new traffic of counterpart carriers for lightpath support (ii).
+                    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                    //for (node_pair_id = 0; node_pair_id < Total_number_of_requests - Total_number_of_Sell_lightpath_supports_II; node_pair_id ++)
+                    {
+                        s = source[node_pair_id];
+                        d = dest[node_pair_id];
+                        a = customer_carrier_customer_id[node_pair_id];
+
+                        if ( i != d && j != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[i]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[j]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+
+                        }
+
+                        if ( j != d && i != s
+
+                                //    &&
+                                //    (  //three relation  X_asdij:    si, dj, ij
+                                //        s == Vpe[j]
+                                //        ||
+                                //        is_feasible_lightpath[s][Vpe[j]] == 1
+                                //    )
+                                //    &&
+                                //    (
+                                //        d == Vpe[i]
+                                //        ||
+                                //        is_feasible_lightpath[d][Vpe[i]] == 1
+                                //    )
+
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(a, s, d, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) =  (long int) Traffic_Matrix[a][s][d];
+                        }
+                    }
+
+                    if (item_num > 0)
+                    {
+                        for (z = 0; z < Z; z ++)
+                        {
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+
+                            }
+                        }
+
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                pcurrent_var = Get_VarID_D(i, j, a);// Which carrier should be selected? this is not a issue so far. Means that delta ij,a needs anyother carriers service, don't care which carrier should be selected. Because only the carrier who offers the lowest price will be considered. If two or more carriers offer the same lowest price, randomly selecte one carrier or based on a predefined policy, which will be future work.
+                                
+                                jj = * pcurrent_var;
+                                
+                                printf("VarDelta i, %d , j %d, a %d, var ID %ld pcurrent_var %ld **************\n",i, j, a, jj, pcurrent_var);
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) =  (long int) ((-1) * Capacity_of_Lightpath);
+                            }
+                        }
+
+                        for (a = 0; a < A; a ++)
+                        {
+                            if( is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0 )
+                            {
+                                pcurrent_var = Get_VarID_O(i, j, a);
+                                jj = * pcurrent_var;
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                //(*pcurrent_element) =  (long int) Capacity_of_Lightpath;
+                                //Important change Oija is changed from integer to binary.
+                                (*pcurrent_element) =  (long int) Capacity_of_Lightpath * is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a];
+                            }
+                        }
+
+                        B = 0;
+                        /*
+                        for (a = 0; a < A; a ++)
+                        {
+                            if(is_Given_Lightpath_Support_II_By_Carrier[i][j][a] > 0) // say, PHI, edge node pair (i, j) is in PHI, need other carriers' lightpath supports.)
+                            {
+                                B = B + is_Given_Lightpath_Support_II_By_Carrier[i][j][a];
+                            }
+                        }
+                        B = (long int) B * (long int) (Capacity_of_Lightpath);
+                        */
+
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+    }
+    printf("*Traffic-3 constraint %ld sum[sd](Traffic_sd*(X_asdij +Xsdji)) <= C * [Sum[w](V_ij^w) + sum[a](Delta_ija)  - sum[a](o_ij^a)] any i,j (i!=j) in ESEN link set which should be created by other carriers a New Eq.(20) \n", ii);
+    //NICT2022 concurrent DCPs ECOC2022
+
+
+
+ 
+    
+//NICT2022 concurrent DCPs ECOC2022
+
+
+    for (i = 0; i < Ne; i++)
+    {
+        for (j = i + 1; j < Ne; j ++)
+        {
+            if(//(i != j)
+                //&&
+                (is_Required_to_Sell_Lightpath[i][j] > 0) // say, where Order_Request[i][j] > 0,  //required by other carriers and should be created by this carrier herself to sell to other carriers
+                //    &&(EPOC_Matrix[Vpe[i]][Vpe[j]] == 1) //stands for that there are requests from other carriers, need to recover the optical network, create lightpath and sell to other carriers
+            )
+            {
+                ii ++;
+
+                for (z = 0; z < Z; z ++)
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+                            pcurrent_var = Get_VarID_V(z, w, i, j); //since i and j are the number of the EPOC nodes which might be different from that of the edge nodes, we perform the mapping between EPOC nodes and Edge nodes, namely, with Vpe[i], Vpe[j]
+                            jj = * pcurrent_var;
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) --;
+                        }
+                    }
+
+                for (a = 0; a < MAX_A; a ++)
+                {
+                    if( is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0 )
+                    {
+                        pcurrent_var = Get_VarID_O(i, j, a);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        // (*pcurrent_element) ++;
+                        //Important change Oija is changed from integer to binary.
+                        (*pcurrent_element) =  (long int) is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a];
+                    }
+                }
+
+                B = 0;//
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            }
+        }
+    }
+
+    printf("*New constraint %ld Sum(zw)V(z,w,i,j) >= sum[a](o_ij^a)  Any ij (i<>j) in ESEN set. Eq.(21)\n", ii);
+    //NICT2022 concurrent DCPs ECOC2022
+
+    /*
+    for (i = 0; i < Ne; i++)
+    {
+        for (j = i + 1; j < Ne; j ++)
+        {
+            for (a = 0; a < A; a ++)
+            {
+
+
+                if(//(i != j)
+               //&&
+                (is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0) // say, where Order_Request[i][j] > 0,  //required by other carriers and should be created by this carrier herself to sell to other carriers
+    	    //    &&(EPOC_Matrix[Vpe[i]][Vpe[j]] == 1) //stands for that there are requests from other carriers, need to recover the optical network, create lightpath and sell to other carriers
+
+                )
+                {
+                    ii ++;
+                    pcurrent_var = Get_VarID_O(i, j, a);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+
+                    B = is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a]; // indicates the number of lightpaths between edge nodes i and j that are required by customer or counterpart carriers.
+                    R = 1; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+
+                }
+
+            }
+        }
+    }
+
+    printf("*New constraint %ld o_ij^a <= Oij^a  Any ij (i<>j) in PI, a in A. New Eq.(23). say the requests might not be satisfied.\n", ii);
+
+    */
+
+
+    // End of modifcation for ESEN + DCI 20210831 ^^^^^^^^^^^^^^^^^
+
+
+
+    //NICT20140217  Border Traffic Constraint X(s'ds'b)  <= Ub any s', d (s',d) in R', b in B Eq.(20)
+
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests_outside; node_pair_id ++)
+    {
+        s = In_out_source[node_pair_id];
+        d = In_out_dest[node_pair_id];
+        a = In_out_customer_carrier_customer_id[node_pair_id];
+
+        for (b = 0; b < BN; b ++)
+        {
+            if ( Vb[b] != Ve[s] && is_feasible_lightpath[Ve[s]][Vb[b]] == 1
+                    /*
+                    &&
+                        (  //three relation  X_asdij:    si, dj, ij
+                            Ve[d] == Vb[b]
+                            ||
+                            is_feasible_lightpath[Ve[d]][Vb[b]] == 1
+                        )
+                    */
+               )
+            {
+                ii ++;
+
+                item_num = 0;
+                pcurrent_var = Get_VarID_X(a, s, d, Ve[s], Vb[b]);
+                jj = * pcurrent_var;
+                pcurrent_element = Get_Element(ii,jj,pElementID);
+                (*pcurrent_element) ++;
+
+
+                pcurrent_var = Get_VarID_U(Vb[b]);
+                jj = * pcurrent_var;
+                pcurrent_element = Get_Element(ii,jj,pElementID);
+                (*pcurrent_element) --;
+
+                B = 0;
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+            }
+        }
+    }
+    printf("*Border-1 constraint %ld X(s'ds'b)  <= ub any s', d (s',d) in R', b in B Eq.(22) \n", ii);
+    //NICT2022 concurrent DCPs ECOC2022
+
+
+    //NICT20140217  Border Traffic Constraint X(s'dbk)  <= Ub any s', d (s',d) in R', b in B Eq.(21)
+
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests_outside; node_pair_id ++)
+    {
+        s = In_out_source[node_pair_id];
+        d = In_out_dest[node_pair_id];
+        a = In_out_customer_carrier_customer_id[node_pair_id];
+
+        for (b = 0; b < BN; b ++)
+        {
+            for (k = 0 ; k < Ne; k ++)
+            {
+                /*               int O_idd;
+                               for (O_idd = 0; O_idd < Total_number_of_requests_outside; O_idd ++)
+                               {
+                                   if (k == In_out_source[O_idd])
+                                   {
+                                       k = Vb[b];
+                                       break;
+                                   }
+                               }
+                */
+
+                if (Vb[b] != Ve[d]
+                        &&
+                        is_In_Inside_Edge_Node_Set(Ve[k])
+                        &&
+                        is_feasible_lightpath[Vb[b]][Ve[k]] == 1
+                        /*
+                        &&
+                        (  //three relation  X_asdij:    si, dj, ij
+                            s == Vb[b]
+                            ||
+                            is_feasible_lightpath[s][Vb[b]] == 1
+                        )
+                        &&
+                        (
+                            d == k
+                            ||
+                            is_feasible_lightpath[d][k] == 1
+                        )
+                        */
+                   )
+                {
+                    ii ++;
+
+                    pcurrent_var = Get_VarID_X(a, s, d, Vb[b], Ve[k]);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+
+
+                    pcurrent_var = Get_VarID_U(Vb[b]);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) --;
+
+                    B = 0;
+                    R = 1; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                }
+
+            }
+        }
+    }
+    printf("*Border-2 constraint %ld X(s'dbk)  <= ub any s', d (s',d) in R', b in B Eq.(23) \n", ii);
+    ////////
+    //NICT2022 concurrent DCPs ECOC2022
+
+
+    ////
+    ///given_carrier_lightpath_supports (i) should be added as constraints
+    for (i = 0; i < Ne; i++)
+    {
+        if ( F_i[Ve[i]] > 0)
+        {
+            for (j = i+1; j < Ne; j++)
+            {
+                for (a = 0; a < A; a++)
+                {    
+                    if (
+                        is_Given_Lightpath_Support_i_By_Carrier[i][j][a] == 1
+                        &&
+                        (is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[i][j][a] > 0) // say, at least is_Given_Lightpath_Support_i
+                        &&
+                        (is_Given_Lightpath_Support_i[i][j] > 0) // say, at least is_Given_Lightpath_Support_i
+                        &&
+                        F_i[Ve[j]] > 0
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(i)
+                            &&
+                            is_In_Inside_Edge_Node_Set(j)
+                        )
+                        &&
+                        !(
+                            is_In_Outside_Edge_Node_Set(j)
+                            &&
+                            is_In_Inside_Edge_Node_Set(i)
+                        )
+                        &&
+                        is_feasible_lightpath[i][j] == 1
+                    )
+                    {
+                        ii ++;
+                        
+                        //item_num = 0;
+                        
+                        pcurrent_var = Get_VarID_D(i, j, a);// Which carrier should be selected? this is not a issue so far. Means that delta ij,a needs anyother carriers service, don't care which carrier should be selected. Because only the carrier who offers the lowest price will be considered. If two or more carriers offer the same lowest price, randomly selecte one carrier or based on a predefined policy, which will be future work.
+                        
+                        jj = * pcurrent_var;
+                        printf("VarDelta i, %d , j %d, a %d, var ID %ld pcurrent_var %ld **************\n",i, j, a, jj, pcurrent_var);
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+                        
+                        B = is_Given_Lightpath_Support_i_By_Carrier[i][j][a];
+                        R = 0; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    }
+                }
+            }
+        }
+    }
+    printf("*is_Given_Lightpath_Support_i constraint %ld Delta_ij <= amount of upper limit of lightpath support (i) between node i and j. Eq.(24) \n", ii);
+
+
+       ////
+    ///if is MUST_Recovery_Bmn_solution, then it should be added as constraints
+    for (m = 0; m < N; m++)
+    {
+        for (n = m + 1; n < N; n++)
+        if(Link[m][n] > 0 && is_MUST_Recovery_Bmn_solution[m][n] == 1)
+        {
+            ii ++;
+            
+            //item_num = 0;
+            
+            pcurrent_var = Get_VarID_B(V[m],V[n]);// Which carrier should be selected? this is not a issue so far. Means that delta ij,a needs anyother carriers service, don't care which carrier should be selected. Because only the carrier who offers the lowest price will be considered. If two or more carriers offer the same lowest price, randomly selecte one carrier or based on a predefined policy, which will be future work.
+                        
+            jj = * pcurrent_var;
+            printf("Var_Beta_mn m, %d , n %d, var ID %ld pcurrent_var %ld **************\n",m, n, jj, pcurrent_var);
+            pcurrent_element = Get_Element(ii,jj,pElementID);
+            (*pcurrent_element) ++;
+            
+            B = 1;
+            R = 0; //0: =    1: <=
+            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+        }
+    }
+    printf("*is_MUST_Recovery_Bmn_solution constraint %ld Beta_mn = 1 between node m and n if is specified as MUST_Recovery_Bmn_solution. Eq.(25) \n", ii);
+
+
+    ////
+
+
+    /*
+       pthread_mutex_lock(&mt2);
+       finished ++;
+       pthread_mutex_unlock(&mt2);
+    */
+    free(pElementID);
+
+    fprintf(fbounds1,"%ld",ii);
+
+    fclose(fconstraints1);
+    fclose(fvariables1);
+    fclose(frhs1);
+    fclose(fbounds1);
+
+
+    printf("Pth%d finished\n",pth_id);
+    // return NULL;
+
+}
+void *pth2(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 2;
+    char str[40];
+
+    if ((fconstraints2 = fopen("constraints2","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables2 = fopen("variables2","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs2 = fopen("rhs2","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds2 = fopen("bounds2","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+
+
+    size = sizeof(long int) * Total_number_of_vars;
+    pElementID = (long int *) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        //TODO 20140203
+
+        // Wavelength routing 1_2   sum(Pin) = sum(Pmj)  Eq.(7)
+
+        s = 0;
+        d = 0;
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i++)
+                {
+                    for (j = i + 1; j < Ne; j ++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            ii ++;
+                            item_num = 0;
+                            for (n = 0; n < N; n ++)
+                            {
+                                if (
+                                    ((V[n] != Ve[i]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                    ||
+                                    ((V[n] != Ve[i]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    pcurrent_var = Get_VarID_P(s, d, c, w, i, j, Ve[i], V[n]);
+
+                                    jj = * pcurrent_var;
+
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) ++;
+                                }
+                            }
+                            for (m = 0; m < N; m ++)
+                            {
+                                if (
+                                    ((V[m] != Ve[j]) && (U_w_m_n[w][V[m]][Ve[j]] == 0))
+                                    ||
+                                    ((V[m] != Ve[j]) && (is_test_set[V[m]][Ve[j]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[m], Ve[j]);
+
+                                    jj = * pcurrent_var;
+
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                }
+                            }
+
+                            if (item_num > 0)
+                            {
+                                B = 0;
+                                R = 0; //0: =    1: <=
+                                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                            } else {
+                                ii --;
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        printf("*WA1_2 constraint %d Wavelength routing 1_2   sum(Pin) = sum(Pmj)  Eq.(7) \n", ii);
+    */
+
+
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+
+    fprintf(fbounds2,"%d",ii);
+
+    fclose(fconstraints2);
+    fclose(fvariables2);
+    fclose(frhs2);
+    fclose(fbounds2);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+
+}
+void *pth3(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+
+    long int item_num;
+
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 3;
+    char str[40];
+
+    if ((fconstraints3 = fopen("constraints3","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables3 = fopen("variables3","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs3 = fopen("rhs3","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds3 = fopen("bounds3","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        //3
+
+        // transponder constraints 1
+        s = 0;
+        d = 0;
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i ++)
+                {
+                    if (F_c_w_i[c][w][Ve[i]] > 0)
+                    {
+                        ii ++;
+                        item_num = 0;
+                        for (j = 0; j < Ne; j ++)
+                        {
+                            if ((F_c_w_i[c][w][Ve[j]] > 0) && (i != j)
+                                    &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(i)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(j)
+                                    )
+                                    &&
+                                    !(
+                                        is_In_Outside_Edge_Node_Set(j)
+                                        &&
+                                        is_In_Inside_Edge_Node_Set(i)
+                                    )
+                                    &&
+                                    is_feasible_lightpath[i][j] == 1
+                               )
+                            {
+                                for (n = 0; n < N; n ++)
+                                {
+                                    if (
+                                        ((Ve[i] != V[n]) && (U_w_m_n[w][Ve[i]][V[n]]==0))
+                                        ||
+                                        ((Ve[i] != V[n]) && (is_test_set[Ve[i]][V[n]]>0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        if (Ve[j] > Ve[i])
+                                        {
+                                            pcurrent_var = Get_VarID_P(s, d, c, w, i, j, Ve[i], V[n]);
+                                        } else if ( Ve[j] < Ve[i])
+                                        {
+                                            pcurrent_var = Get_VarID_P(s, d, c, w, j, i, V[n], Ve[i]);
+                                        }
+
+                                        jj = * pcurrent_var;
+
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                            }
+                        }
+
+
+                        if (item_num > 0)
+                        {
+                            B = F_c_w_i[c][w][Ve[i]];
+                            R = 1; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R, B, pElementID,pth_id);
+                        } else {
+                            ii --;
+                        }
+                    }
+                }
+            }
+        }
+        printf("*TPND1 constraint %d Eq(2),(3)\n", ii);
+
+        s = 0;
+        d = 0;
+        for (i = 0; i < Ne; i ++)
+        {
+            ii ++;
+            item_num = 0;
+            for (c = 0; c < C; c ++)
+            {
+                for (w = lambda_start; w < lambda_end; w ++)
+                {
+                    for (j = 0; j < Ne; j++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0 && (i != j)
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            for (n = 0; n < N; n ++)
+                            {
+                                if (
+                                    ((Ve[i] != V[n]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                    ||
+                                    ((Ve[i] != V[n]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                )
+                                {
+                                    item_num ++;
+                                    if (Ve[j] > Ve[i])
+                                    {
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, i, j, Ve[i], V[n]);
+                                    } else if ( Ve[j] < Ve[i])
+                                    {
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, j, i, V[n], Ve[i]);
+                                    }
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) ++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (item_num > 0)
+            {
+                B = F_i[Ve[i]];
+                R = 1; //0: =    1: <=
+                write_files(ii,Total_number_of_vars,R, B, pElementID,pth_id);
+            } else {
+                ii --;
+            }
+        }
+
+        printf("*TPND2 constraint %d Eq.(4),(5).\n", ii);
+
+
+    */
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+
+    free(pElementID);
+
+    fprintf(fbounds3,"%d",ii);
+    fclose(fconstraints3);
+    fclose(fvariables3);
+    fclose(frhs3);
+    fclose(fbounds3);
+
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+void *pth4(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 4;
+    char str[40];
+
+
+
+    if ((fconstraints4 = fopen("constraints4","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables4 = fopen("variables4","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs4 = fopen("rhs4","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds4 = fopen("bounds4","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        //NICT20140217
+        // Wavelength routing 2  Eq.(8)
+        s = 0;
+        d = 0;
+        for (i = 0; i < Ne; i ++)
+        {
+            for (j = i + 1; j < Ne; j ++)
+            {
+                if (
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+
+                            if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                            {
+                                ii ++;
+                                item_num = 0;
+
+                                for (n = 0; n < N; n ++)
+                                {
+                                    if (
+                                        ((V[n] != Ve[i]) && (U_w_m_n[w][Ve[i]][V[n]] == 0))
+                                        ||
+                                        ((V[n] != Ve[i]) && (is_test_set[Ve[i]][V[n]] > 0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, i, j, Ve[i], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                                if (item_num > 0)
+                                {
+                                    pcurrent_var = Get_VarID_V(w, i, j);
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                    B = 0;
+                                    R = 0; //0: =    1: <=
+                                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                                } else {
+                                    ii --;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        printf("*WA2 constraint %d Eq.(8).\n", ii);
+
+    */
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+    fprintf(fbounds4,"%d",ii);
+    fclose(fconstraints4);
+    fclose(fvariables4);
+    fclose(frhs4);
+    fclose(fbounds4);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+
+/////////////////////////////
+
+void *pth5(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 5;
+    char str[40];
+
+
+    if ((fconstraints5 = fopen("constraints5","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables5 = fopen("variables5","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs5 = fopen("rhs5","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds5 = fopen("bounds5","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    ii = 0;
+
+    /*
+        //NICT20140217
+        // Wavelength routing 3 Eq.(9)
+        s = 0;
+        d = 0;
+        for (i = 0; i < Ne; i ++)
+        {
+            for (j = i + 1; j < Ne; j ++)
+            {
+                if (
+                    !(
+                        is_In_Outside_Edge_Node_Set(i)
+                        &&
+                        is_In_Inside_Edge_Node_Set(j)
+                    )
+                    &&
+                    !(
+                        is_In_Outside_Edge_Node_Set(j)
+                        &&
+                        is_In_Inside_Edge_Node_Set(i)
+                    )
+                    &&
+                    is_feasible_lightpath[i][j] == 1
+                )
+                {
+                    for (c = 0; c < C; c ++)
+                    {
+                        for (w = lambda_start; w < lambda_end; w ++)
+                        {
+
+                            if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                            {
+                                ii ++;
+                                item_num = 0;
+
+                                for (m = 0; m < N; m ++)
+                                {
+                                    if (
+                                        ((V[m] != Ve[j]) && (U_w_m_n[w][V[m]][Ve[j]] == 0))
+                                        ||
+                                        ((V[m] != Ve[j]) && (is_test_set[V[m]][Ve[j]] > 0))
+                                    )
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[m], Ve[j]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                                if (item_num > 0)
+                                {
+
+                                    pcurrent_var = Get_VarID_V(w, i, j);
+                                    jj = * pcurrent_var;
+                                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                                    (*pcurrent_element) --;
+                                    B = 0;
+                                    R = 0; //0: =    1: <=
+                                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                                } else {
+                                    ii --;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        printf("*WA3 constraint %d Eq.(9).\n", ii);
+    */
+
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+
+    fprintf(fbounds5,"%d",ii);
+
+    fclose(fconstraints5);
+    fclose(fvariables5);
+    fclose(frhs5);
+    fclose(fbounds5);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+void *pth6(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 6;
+    char str[40];
+
+
+    if ((fconstraints6 = fopen("constraints6","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables6 = fopen("variables6","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs6 = fopen("rhs6","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds6 = fopen("bounds6","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        // Wavelength routing 1_2   V(w,i,j) = V(w,j,i)  Eq.(10) Any ij (i<j)
+
+        for (c = 0; c < C; c ++)
+        {
+            for (w = lambda_start; w < lambda_end; w ++)
+            {
+                for (i = 0; i < Ne; i++)
+                {
+                    for (j = i + 1; j < Ne; j ++)
+                    {
+                        if (F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&
+                                is_feasible_lightpath[i][j] == 1
+                           )
+                        {
+                            ii ++;
+                            item_num = 0;
+                            pcurrent_var = Get_VarID_V(w, i, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) ++;
+
+
+                            pcurrent_var = Get_VarID_V(w, j, i);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) --;
+
+                            B = 0;
+                            R = 0; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+
+                        }
+                    }
+                }
+            }
+
+        }
+
+        printf("*New constraint %d V(w,i,j) = V(w,j,i) Any ij (i<j) Eq.(10)\n", ii);
+
+        for (i = 0; i < Np; i++)
+        {
+            for (j = 0; j < Np; j ++)
+            {
+    	  if(i != j)
+    	  {
+    	    ii ++;
+
+    	    for (c = 0; c < C; c ++)
+    	    {
+    	      for (w = lambda_start; w < lambda_end; w ++)
+    	      {
+
+    		pcurrent_var = Get_VarID_V(w, Vpe[i], Vpe[j]);
+
+    		jj = * pcurrent_var;
+    		pcurrent_element = Get_Element(ii,jj,pElementID);
+    		(*pcurrent_element) --;
+
+    	      }
+    	    }
+    	    B = -1;
+    	    R = 1; //0: =    1: <=
+    	    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+    	  }
+    	}
+        }
+
+        printf("*New constraint %d Sum(w)V(w,i,j) >=1  Any ij (i<>j) in EPOC set. Eq.(10.5)\n", ii);
+
+
+        //8
+        //One wavelength per path constraints
+
+        //NICT20140217. Eq.(13)
+        for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+        {
+            for (n = m + 1; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+            {
+                if (is_test_set[V[m]][V[n]] == 0)
+                {
+                    for (w = lambda_start; w < lambda_end; w ++)
+                    {
+                        if (U_w_m_n[w][V[m]][V[n]] == 0)
+                        {
+                            ii ++;
+
+                            item_num = 0;
+                            s = 0; //dummy
+                            d = 0; //dummy
+                            for (c = 0; c < C; c ++)
+                            {
+                                for (i = 0; i < Ne; i++)
+                                {
+                                    for (j = i + 1; j < Ne; j ++)
+                                    {
+                                        if ((F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                                                &&
+                                                !(
+                                                    is_In_Outside_Edge_Node_Set(i)
+                                                    &&
+                                                    is_In_Inside_Edge_Node_Set(j)
+                                                )
+                                                &&
+                                                !(
+                                                    is_In_Outside_Edge_Node_Set(j)
+                                                    &&
+                                                    is_In_Inside_Edge_Node_Set(i)
+                                                )
+                                                &&
+                                                is_feasible_lightpath[i][j] == 1
+                                           ) // && (Ve[j] != V[m]) && (Ve[i] != V[n]) && (i != d) && (j != s))
+                                        {
+                                            item_num ++;
+                                            pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[m], V[n]);
+                                            jj = * pcurrent_var;
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) ++;
+
+                                            pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[n], V[m]);
+                                            jj = * pcurrent_var;
+                                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                                            (*pcurrent_element) ++;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (item_num > 0)
+                            {
+                                B = 1;
+                                R = 1; //0: =    1: <=
+                                write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                            } else {
+                                ii --;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        printf("*OneWave constraint 1 %d Eq.(13).\n", ii);
+
+        //NICT20140217  Eq.(14)
+
+        for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+        {
+            for (n = m + 1; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+            {
+                if (is_test_set[V[m]][V[n]] > 0)
+                {
+                    for (w = lambda_start; w < lambda_end; w ++)
+                    {
+                        ii ++;
+                        item_num = 0;
+                        s = 0; //dummy
+                        d = 0; //dummy
+                        for (c = 0; c < C; c ++)
+                        {
+                            for (i = 0; i < Ne; i++)
+                            {
+                                for (j = i + 1; j < Ne; j ++)
+                                {
+                                    if ((F_c_w_i[c][w][Ve[i]] > 0 &&  F_c_w_i[c][w][Ve[j]] > 0)
+                                            &&
+                                            !(
+                                                is_In_Outside_Edge_Node_Set(i)
+                                                &&
+                                                is_In_Inside_Edge_Node_Set(j)
+                                            )
+                                            &&
+                                            !(
+                                                is_In_Outside_Edge_Node_Set(j)
+                                                &&
+                                                is_In_Inside_Edge_Node_Set(i)
+                                            )
+                                            &&
+                                            is_feasible_lightpath[i][j] == 1
+                                       ) // && (Ve[j] != V[m]) && (Ve[i] != V[n]) && (i != d) && (j != s))
+                                    {
+                                        item_num ++;
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[m], V[n]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+
+                                        pcurrent_var = Get_VarID_P(s, d, c, w, i, j, V[n], V[m]);
+                                        jj = * pcurrent_var;
+                                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                                        (*pcurrent_element) ++;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (item_num > 0)
+                        {
+                            pcurrent_var = Get_VarID_B(V[m], V[n]);
+                            jj = * pcurrent_var;
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) --;
+                            B = 0;
+                            R = 1; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                        } else {
+                            ii --;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        printf("*OneWave constraint 2 %d Eq.(14).\n", ii);
+        */
+
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+
+    fprintf(fbounds6,"%d",ii);
+
+    fclose(fconstraints6);
+    fclose(fvariables6);
+    fclose(frhs6);
+    fclose(fbounds6);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+
+void *pth7(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 7;
+    char str[40];
+
+    if ((fconstraints7 = fopen("constraints7","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables7 = fopen("variables7","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs7 = fopen("rhs7","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds7 = fopen("bounds7","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        //Degree limit Eq(15).
+        for (m = 0; m < N; m ++) //for (m = 0; m < Nc; m ++)
+        {
+            B = 0;
+
+            for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+            {
+                if (isTest(V[m],V[n]))
+                {
+                    B = 1;
+                    break;
+                }
+            }
+
+            if (B == 1)
+            {
+                ii ++;
+                item_num = 0;
+                for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+                {
+                    if (isTest(V[m],V[n]))
+                    {
+                        item_num ++;
+                        if (V[m] < V[n])
+                        {
+                            pcurrent_var = Get_VarID_B(V[m], V[n]);
+                        } else if (V[m] > V[n])
+                        {
+                            pcurrent_var = Get_VarID_B(V[n], V[m]);
+                        }
+
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+                    }
+                }
+                if (item_num > 0)
+                {
+                    B = 0;
+                    for (n = 0; n < N; n ++) //        for (n = 0; n < Nc; n ++)
+                    {
+                        if (Link[V[m]][V[n]] == 0) //define 0:there is a link, 1: no link. Merely for convenience. normally, 1 there is a link... Because matrix Link uses the similar value of U[W][N][N], easy to change value in program.
+                        {
+                            B ++ ;
+                        }
+
+                    }
+
+                    B = degree_limit[V[m]] - B;
+
+                    R = 1; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                } else {
+                    ii --;
+                }
+            }
+        }
+
+        printf("*Degree limit 1 %d Eq(15).\n", ii);
+
+
+
+        //NICT20140217 Traffic-1 constraint    sum(X_asdij) = sum(Xsdkj)  any s,d, k (k!=s!=d) Eq.(16)
+
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+        {
+            s = source[node_pair_id];
+            d = dest[node_pair_id];
+            for (k = 0; k < Ne; k ++)
+            {
+                if ( k != s && k != d && (F_i[Ve[k]] > 0))
+                {
+                    ii ++;
+
+                    item_num = 0;
+                    for (i = 0; i < Ne; i++)
+                    {
+                        if ((i != d) && (i != k) && (F_i[Ve[i]] > 0)
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(i)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(k)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(k)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(i)
+                                )
+                                &&//three relation  X_asdij:    si, dj, ij
+                                is_feasible_lightpath[i][k] == 1
+                                &&
+                                (
+                                    (i == s)
+                                    ||
+                                    is_feasible_lightpath[s][i] == 1
+                                )
+                                &&
+                                (
+                                    (d == k)
+                                    ||
+                                    is_feasible_lightpath[d][k] == 1
+                                )
+
+                           )
+                        {
+
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, i, k);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) ++;
+                        }
+                    }
+
+                    for (j = 0; j < Ne; j ++)
+                    {
+                        if ((j != s) && (j != k) && (F_i[Ve[j]] > 0)
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(j)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(k)
+                                )
+                                &&
+                                !(
+                                    is_In_Outside_Edge_Node_Set(k)
+                                    &&
+                                    is_In_Inside_Edge_Node_Set(j)
+                                )
+                                &&//three relation  X_asdij:    si, dj, ij
+                                is_feasible_lightpath[k][j] == 1
+                                &&
+                                (
+                                    (d == j)
+                                    ||
+                                    is_feasible_lightpath[d][j] == 1
+                                )
+                                &&
+                                (
+                                    (s == k)
+                                    ||
+                                    is_feasible_lightpath[s][k] == 1
+                                )
+                           )
+                        {
+                            item_num ++;
+                            pcurrent_var = Get_VarID_X(s, d, k, j);
+
+                            jj = * pcurrent_var;
+
+                            pcurrent_element = Get_Element(ii,jj,pElementID);
+                            (*pcurrent_element) --;
+                        }
+                    }
+                    if (item_num > 0)
+                    {
+                        B = 0;
+                        R = 0; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    } else {
+                        ii --;
+                    }
+
+                }
+            }
+        }
+
+
+        printf("*Traffic-1 constraint %d   sum(X_asdij) = sum(Xsdkj)  any s,d, k (k!=s!=d) Eq.(16) \n", ii);
+
+
+    //NICT20140217  Traffic-2 constraint sum(Xsdsj)=Casd Eq.(17).
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+        {
+            s = source[node_pair_id];
+            d = dest[node_pair_id];
+
+            if ((F_i[Ve[s]] > 0) && (F_i[Ve[d]] > 0))
+            {
+                ii ++;
+                item_num = 0;
+                for (j = 0; j < Ne; j ++)
+                {
+                    if ((j != s) && (F_i[Ve[j]] > 0)
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(s)
+                                &&
+                                is_In_Inside_Edge_Node_Set(j)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(j)
+                                &&
+                                is_In_Inside_Edge_Node_Set(s)
+                            )
+                            &&//three relation  X_asdij:    si, dj, ij
+                            is_feasible_lightpath[s][j] == 1
+                            &&
+                            (
+                                d == j
+                                ||
+                                is_feasible_lightpath[d][j] == 1
+                            )
+                       )
+                    {
+
+                        item_num ++;
+                        pcurrent_var = Get_VarID_X(s, d, s, j);
+
+                        jj = * pcurrent_var;
+
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+
+                    }
+                }
+
+                if (item_num > 0)
+                {
+                    pcurrent_var = Get_VarID_C(s, d);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) --;
+                    B = 0;
+                    R = 0; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                } else {
+                    ii --;
+                }
+            }
+
+        }
+        printf("*Traffic-2  constraint %d sum(Xsdsj)=Casd Eq.(17)\n", ii);
+
+    //NICT20140217  Traffic-2 constraint sum(Xsdid)=Casd Eq.(18).
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+        {
+            s = source[node_pair_id];
+            d = dest[node_pair_id];
+            if ((F_i[Ve[s]] > 0) && (F_i[Ve[d]] > 0))
+            {
+                ii ++;
+                item_num = 0;
+                for (i = 0; i < Ne; i ++)
+                {
+                    if ((i != d)  && (F_i[Ve[i]] > 0)
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(i)
+                                &&
+                                is_In_Inside_Edge_Node_Set(d)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(d)
+                                &&
+                                is_In_Inside_Edge_Node_Set(i)
+                            )
+                            &&//three relation  X_asdij:    si, dj, ij
+                            is_feasible_lightpath[i][d] == 1
+                            &&
+                            (
+                                (s == i)
+                                ||
+                                is_feasible_lightpath[s][i] == 1
+                            )
+                       )
+                    {
+
+                        item_num ++;
+                        pcurrent_var = Get_VarID_X(s, d, i, d);
+
+                        jj = * pcurrent_var;
+
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+
+                    }
+                }
+
+                if (item_num > 0)
+                {
+
+                    pcurrent_var = Get_VarID_C(s, d);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) --;
+                    B = 0;
+                    R = 0; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                } else {
+                    ii --;
+                }
+            }
+        }
+        printf("*Traffic-2  constraint %d sum(Xsdid)=Casd Eq.(18)\n", ii);
+
+        */
+
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+
+    fprintf(fbounds7,"%d",ii);
+    fclose(fconstraints7);
+    fclose(fvariables7);
+    fclose(frhs7);
+    fclose(fbounds7);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+
+
+void *pth8(void *arg) {
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    long int item_num;
+    int b, s,d,c,w,i,j,m,n,k,z;
+    int node_pair_id;
+    int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    int pth_id = 8;
+    char str[40];
+
+
+    if ((fconstraints8 = fopen("constraints8","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables8 = fopen("variables8","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs8 = fopen("rhs8","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds8 = fopen("bounds8","w")) == NULL)
+    {
+        exit(1);
+    }
+
+    ii = 0;
+
+    size = sizeof(long int)* Total_number_of_vars;
+    pElementID = (long int*) malloc(size);
+    memset(pElementID,'\0', size);
+
+    /*
+        //NICT20140217 Traffic-3 constraint    sum(X_asdij +Xsdji) = sum(Vzwij)  any i,j (i!=j) Eq.(19)
+        for (i = 0; i < Ne; i++)
+        {
+            if (F_i[Ve[i]] > 0)
+            {
+                for (j = i + 1; j < Ne; j++)
+                {
+                    if (F_i[Ve[j]] > 0
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(i)
+                                &&
+                                is_In_Inside_Edge_Node_Set(j)
+                            )
+                            &&
+                            !(
+                                is_In_Outside_Edge_Node_Set(j)
+                                &&
+                                is_In_Inside_Edge_Node_Set(i)
+                            )
+                            &&
+                            is_feasible_lightpath[i][j] == 1
+                       )
+                    {
+                        ii ++;
+
+                        item_num = 0;
+
+                        for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+                        {
+                            s = source[node_pair_id];
+                            d = dest[node_pair_id];
+
+                            if ( i != d && j != s
+                                    &&
+                                    (  //three relation  X_asdij:    si, dj, ij
+                                        s == i
+                                        ||
+                                        is_feasible_lightpath[s][i] == 1
+                                    )
+                                    &&
+                                    (
+                                        d == j
+                                        ||
+                                        is_feasible_lightpath[d][j] == 1
+                                    )
+                               )
+                            {
+                                item_num ++;
+                                pcurrent_var = Get_VarID_X(s, d, i, j);
+
+                                jj = * pcurrent_var;
+
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) = Traffic_Matrix[s][d];
+
+                            }
+
+                            if ( j != d && i !=s
+                                    &&
+                                    (  //three relation  X_asdij:    si, dj, ij
+                                        s == j
+                                        ||
+                                        is_feasible_lightpath[s][j] == 1
+                                    )
+                                    &&
+                                    (
+                                        d == i
+                                        ||
+                                        is_feasible_lightpath[d][i] == 1
+                                    )
+                               )
+                            {
+                                item_num ++;
+                                pcurrent_var = Get_VarID_X(s, d, j, i);
+
+                                jj = * pcurrent_var;
+
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) = Traffic_Matrix[s][d];
+                            }
+                        }
+
+                        if (item_num > 0)
+                        {
+                            for (w = lambda_start; w < lambda_end; w ++)
+                            {
+                                pcurrent_var = Get_VarID_V(w, i, j);
+
+                                jj = * pcurrent_var;
+
+                                pcurrent_element = Get_Element(ii,jj,pElementID);
+                                (*pcurrent_element) = - Capacity_of_Lightpath;
+
+                            }
+                            B = 0;
+                            R = 1; //0: =    1: <=
+                            write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                        } else {
+                            ii --;
+                        }
+
+                    }
+                }
+            }
+        }
+        printf("*Traffic-3 constraint %d sum[sd](Traffic_sd*(X_asdij +Xasdji)) = C * sum(Vzwij)  any i,j (i!=j) Eq.(19) \n", ii);
+
+
+        //NICT20140217  Border Traffic Constraint X(s'ds'b)  <= Ub any s', d (s',d) in R', b in B Eq.(20)
+
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests_outside; node_pair_id ++)
+        {
+            s = In_out_source[node_pair_id];
+            d = In_out_dest[node_pair_id];
+
+            for (b = 0; b < BN; b ++)
+            {
+                if ( Vb[b] != s && is_feasible_lightpath[s][Vb[b]] == 1
+                        &&
+                        (  //three relation  X_asdij:    si, dj, ij
+                            d == Vb[b]
+                            ||
+                            is_feasible_lightpath[d][Vb[b]] == 1
+                        )
+                   )
+                {
+                    ii ++;
+
+                    item_num = 0;
+                    pcurrent_var = Get_VarID_X(s, d, s, Vb[b]);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) ++;
+
+
+                    pcurrent_var = Get_VarID_U(Vb[b]);
+                    jj = * pcurrent_var;
+                    pcurrent_element = Get_Element(ii,jj,pElementID);
+                    (*pcurrent_element) --;
+
+                    B = 0;
+                    R = 1; //0: =    1: <=
+                    write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                }
+            }
+        }
+        printf("*Border-1 constraint %d X(s'ds'b)  <= ub any s', d (s',d) in R', b in B Eq.(20) \n", ii);
+
+
+        //NICT20140217  Border Traffic Constraint X(s'dbk)  <= Ub any s', d (s',d) in R', b in B Eq.(21)
+
+        for (node_pair_id = 0; node_pair_id < Total_number_of_requests_outside; node_pair_id ++)
+        {
+            s = In_out_source[node_pair_id];
+            d = In_out_dest[node_pair_id];
+            for (b = 0; b < BN; b ++)
+            {
+                for (k = 0 ; k < Ne; k ++)
+                {
+                    //               int O_idd;
+                    //               for (O_idd = 0; O_idd < Total_number_of_requests_outside; O_idd ++)
+                    //               {
+                    //                   if (k == In_out_source[O_idd])
+                    //                   {
+                    //                       k = Vb[b];
+                    //                       break;
+                    //                  }
+                    //               }
+                    //
+
+                    if (Vb[b] != d
+                            &&
+                            is_In_Inside_Edge_Node_Set(k)
+                            &&
+                            is_feasible_lightpath[Vb[b]][k] == 1
+                            &&
+                            (  //three relation  X_asdij:    si, dj, ij
+                                s == Vb[b]
+                                ||
+                                is_feasible_lightpath[s][Vb[b]] == 1
+                            )
+                            &&
+                            (
+                                d == k
+                                ||
+                                is_feasible_lightpath[d][k] == 1
+                            )
+                       )
+                    {
+                        ii ++;
+
+                        pcurrent_var = Get_VarID_X(s, d, Vb[b], k);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) ++;
+
+
+                        pcurrent_var = Get_VarID_U(Vb[b]);
+                        jj = * pcurrent_var;
+                        pcurrent_element = Get_Element(ii,jj,pElementID);
+                        (*pcurrent_element) --;
+
+                        B = 0;
+                        R = 1; //0: =    1: <=
+                        write_files(ii,Total_number_of_vars,R,B,pElementID,pth_id);
+                    }
+
+                }
+            }
+        }
+        printf("*Border-2 constraint %d X(s'dbk)  <= ub any s', d (s',d) in R', b in B Eq.(21) \n", ii);
+    */
+    pthread_mutex_lock(&mt2);
+    finished ++;
+    pthread_mutex_unlock(&mt2);
+
+    free(pElementID);
+    fprintf(fbounds8,"%d",ii);
+    fclose(fconstraints8);
+    fclose(fvariables8);
+    fclose(frhs8);
+    fclose(fbounds8);
+
+    printf("Pth%d finished\n",pth_id);
+    return NULL;
+}
+
+int main(int argc, char **argv)
+{
+
+    long int * pElementID;
+    long int * pcurrent_var;
+    long int * pcurrent_element;
+    int s,d,c,w,i,j,m,n,k,a,b,z;
+    int node_pair_id;
+    long int ii,jj;
+    int R;
+    long long int B;
+    long int size;
+    long int counter = 0;
+    long int counter1, counter2, counter3, counter4;
+    long int counter5, counter6, counter7, counter8;
+    int cost = 0;
+    int repair_normal_link = 0;
+    int repair_interconnection_link = 0;
+
+    long int Bandwidth;
+    long int Max_Bandwidth;
+    long int Min_Bandwidth;
+    int Priority;
+    int lightpath_support_type;
+    char variable_id[1024];
+        
+    char variable_value[1024];
+
+    int request_counter = 0;
+    // int self_carrier_customer_id = -1; //changed to the global variable. NICT2022 concurrent DCPs ECOC2022
+    int id, price;
+    int is_esen, amount;
+
+
+    FILE * fconf;
+    FILE * flink;
+
+    char dummy_str[40];
+    char str[40];
+    char line[256];
+    char temp[102400];
+
+
+    Z = 1; //NICT2022 concurrent DCPs ECOC2022 Z=2 may introduce more complexity. Finally, co-route multipath between i and j (with different lambdas) is adopted. Moreover, the recovery segments is identified along the same route.
+    Total_number_of_carriers = 3; // Variable A means the total number of carriers and DCPs.
+
+    Read_PNE_Topology_Conf();
+    
+    
+    Capacity_of_Lightpath = 100000;//Gbps;
+    for (s = 0 ; s < MAX_Ne; s++)
+    {
+        for (d = 0; d < MAX_Ne; d++)
+        {
+            is_Required_to_Sell_Lightpath[s][d] = 0;
+            is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[s][d] = 0;
+            
+            for (a = 0; a < MAX_A; a ++)
+            {
+                is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[s][d][a] = 0;
+                Traffic_Matrix[a][s][d] = 0; //NICT2022 concurrent ECOC2022
+                is_Required_to_Sell_Lightpath_to_Customer_Carrier[s][d][a] = 0;
+            }
+        }
+    }
+
+    for (m = 0; m < MAX_N; m ++)
+    {
+        for (n = 0; n < MAX_N; n ++)
+        {
+            Link_Recovery_Cost[m][n] = 0;
+            Customer_Traffic_Request[m][n] = 0;
+        }
+    }
+
+
+    for (i = 0 ; i < MAX_Np; i++)
+    {
+        for (j = 0; j < MAX_Np; j++)
+        {
+            Order_Request[i][j] = 0;
+            is_feasible_EPOC_lighpath[i][j] = 0;
+            for (a = 0; a < MAX_A; a ++)
+                is_feasible_to_Buy_EPOC_lighpath[i][j][a] = 0;
+            is_Required_to_Sell_EPOC_Lightpath[i][j] = 0;
+        }
+    }
+
+    if(argc <2)
+    {
+        printf("Usage: $>command -option carrier_customer_id\n");
+        exit(0);
+    }
+
+    self_carrier_customer_id = atoi(argv[2]);
+
+    /*
+    for (m = 0 ; m < Total_number_of_requests; m++)
+    {
+        Traffic_Matrix[source[m]][dest[m]] = 0;
+        Traffic_Matrix[dest[m]][source[m]] = 0;
+    }
+    */
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "NODE") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < N; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                V[m] = a;
+
+            }
+
+
+
+            fscanf(fconf,"\nEDGE\n");
+            for (m = 0; m < N; m ++)
+                Voe[m] = -1;  //ID mapping info from optical node to edge node
+
+            for (m = 0; m < Ne; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                //Ve[m] = a;
+
+                for (n = 0; n < N; n++)
+                {
+                    if (V[n] == a)
+                    {
+                        Ve[m] = n;
+                        Voe[n] = m;
+                        break;
+                    }
+                }
+
+            }
+
+            fscanf(fconf,"\nEPOC\n");
+            for (m = 0; m < N; m ++)
+                Vop[m] = -1;
+
+            for (m = 0; m < Ne; m ++)
+                Vep[m] = -1;
+
+            for (m = 0; m < Np; m ++)
+            {
+                Vp[m] = -1;
+                Vpe[m] = -1;
+            }
+
+
+
+            for (m = 0; m < Np; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                //Vp[m] = a;
+
+                for (n = 0; n < N; n ++)
+                {
+                    if(a == V[n])
+                    {
+                        Vp[m] = n;
+                        Vop[n] = m;
+                        Vpe[m] = Voe[n];
+                        Vep[Voe[n]] = m;
+                        break;
+                    }
+                }
+
+                /*
+                for (n = 0; n < Ne; n ++)
+                {
+                    if(a == Ve[n])
+                    {
+                        Vpe[m] = n;
+                        Vep[n] = m;
+                        break;
+                    }
+                }
+                */
+            }
+
+
+            /*
+            for (m = 0; m < N; m ++)
+            {
+                printf("Opt-ID:%02d name:%2d  Edge-ID:%02d  ESEN-ID:%02d \n", m, V[m], Voe[m], Vop[m]);
+            }
+
+            for (m = 0; m < Ne; m ++)
+            {
+                printf("Edge-ID:%02d name:%2d Optical-ID:%02d ESEN-ID:%02d \n", m, V[Ve[m]], Ve[m], Vep[m]);
+            }
+
+            for (m = 0; m < Np; m ++)
+            {
+                printf("ESEN-ID:%02d name:%2d Optical-ID:%02d Edge-ID:%02d\n", m, V[Vp[m]], Vp[m], Vpe[m]);
+            }
+            */
+
+            fscanf(fconf,"\nBORDER_NODE\n");
+
+            for (m = 0; m < BN; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                Vb[m] = a;
+            }
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    for (i = 0; i < Ne; i ++)
+    {
+        for (j = 0; j < Ne; j ++)
+        {
+            is_feasible_lightpath[i][j] = 0;
+        }
+    }
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "FEASIBLE_LIGHTPATH") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (i = 0; i < Ne; i ++)
+            {
+                for (j = 0; j < Ne; j ++)
+                {
+                    fscanf(fconf,"%d, ", &a);
+                    is_feasible_lightpath[i][j] = a;
+                }
+
+                fscanf(fconf,"\n");
+            }
+            fscanf(fconf,"\n");
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//   fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "SOURCE") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                source[m] = a;
+            }
+
+            fscanf(fconf,"\nDEST\n");
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                dest[m] = a;
+            }
+
+            fscanf(fconf,"\nWEIGHT\n");
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                weight[m] = a;
+            }
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                customer_carrier_customer_id[m] = self_carrier_customer_id;
+            }
+
+            //TOCHECK there was a read return action? why? // fscanf(fconf,"\n");
+
+            fscanf(fconf,"\nTRAFFIC_VOLUME\n");
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                Traffic_Matrix[self_carrier_customer_id][source[m]][dest[m]] = a;
+                Traffic_Matrix[self_carrier_customer_id][dest[m]][source[m]] = a;
+            }
+
+            for (m = 0; m < Total_number_of_requests; m ++)
+            {
+                if (source[m] > dest[m])
+                {
+                    int temp;
+                    temp = source[m];
+                    source[m] = dest[m];
+                    dest[m] = temp;
+                }
+            }
+
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+//   fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "OUTSIDE_SOURCE") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < Total_number_of_requests_outside; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                In_out_source[m] = a;
+            }
+
+            fscanf(fconf,"\nINSIDE_DEST\n");
+
+            for (m = 0; m < Total_number_of_requests_outside; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                In_out_dest[m] = a;
+            }
+
+            for (m = 0; m < Total_number_of_requests_outside; m ++)
+            {
+                In_out_customer_carrier_customer_id[m] = self_carrier_customer_id;
+            }
+
+
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+
+
+
+
+
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "TEST_M") != NULL) {
+
+
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < Total_number_of_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                test_m[m] = a;
+            }
+
+            fscanf(fconf,"\nTEST_N\n");
+
+            for (m = 0; m < Total_number_of_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                test_n[m] = a;
+            }
+
+            fscanf(fconf,"\nTEST_WEIGHT\n");
+
+            for (m = 0; m < Total_number_of_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                test_weight[m] = a;
+            }
+
+            for (m = 0; m < Total_number_of_trial; m ++)
+            {
+                Link_Recovery_Cost[test_m[m]][test_n[m]] = test_weight[m];
+                Link_Recovery_Cost[test_n[m]][test_m[m]] = test_weight[m];
+            }
+
+
+
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "INTER_TEST_M") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < Total_number_of_inter_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                inter_test_m[m] = a;
+            }
+
+            fscanf(fconf,"\nINTER_TEST_N\n");
+
+            for (m = 0; m < Total_number_of_inter_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                inter_test_n[m] = a;
+            }
+
+            fscanf(fconf,"\nINTER_TEST_WEIGHT\n");
+
+            for (m = 0; m < Total_number_of_inter_trial; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                inter_test_weight[m] = a;
+            }
+
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "DEGREE_LIMIT") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < N; m ++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                degree_limit[m] = a;
+            }
+
+
+            fscanf(fconf,"\n");
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "F_c_w_i") != NULL) {
+            fscanf(fconf,"\n");
+            for (c = 0; c < C; c ++)
+            {
+                for (w = 0; w < W; w ++)
+                {
+                    for (i = 0; i < N; i++)
+                    {
+                        fscanf(fconf,"%d, ", &a);
+                        F_c_w_i[c][w][i] = a;
+                    }
+
+                    fscanf(fconf,"\n");
+                }
+                fscanf(fconf,"\n");
+            }
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "F_i") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (i = 0; i < N; i++)
+            {
+                fscanf(fconf,"%d, ", &a);
+                F_i[i] = a;
+            }
+
+            fscanf(fconf,"\n");
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+
+
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        //fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "U_w_m_n") != NULL) {
+            fscanf(fconf,"\n");
+            for (w = 0; w < W; w ++)
+            {
+                for (m = 0; m < N; m ++)
+                {
+                    for (n = 0; n < N; n ++)
+                    {
+                        fscanf(fconf,"%d, ", &a);
+                        U_w_m_n[w][m][n] = a;
+                    }
+
+                    fscanf(fconf,"\n");
+                }
+                fscanf(fconf,"\n");
+            }
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    if ((fconf = fopen("./conf.txt","r")) == NULL)
+    {
+        printf("Not find conf.txt.\n");
+        // fclose(fconf);
+        exit(1);
+    }
+
+//    fscanf(fconf, "N=%d Ne=%d BN=%d C=%d W=%d R=%d T=%d O=%d \n", &N, &Ne, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+    fscanf(fconf, "N=%d Ne=%d Np=%d BN=%d C=%d W=%d R=%d T=%d O=%d\n", &N, &Ne, &Np, &BN, &C, &W, &Total_number_of_requests, &Total_number_of_trial, &Total_number_of_requests_outside);
+
+
+    while (fgets(temp, 102400, fconf) != NULL) {
+        if (strstr(temp, "LINK") != NULL) {
+            fscanf(fconf,"\n");
+
+            for (m = 0; m < N; m ++)
+            {
+                for (n = 0; n < N; n ++)
+                {
+                    fscanf(fconf,"%d, ", &a);
+                    Link[m][n] = a;
+                }
+
+                fscanf(fconf,"\n");
+            }
+            fscanf(fconf,"\n");
+
+            fclose(fconf);
+            break;
+
+        }
+    }
+
+    ////////////////////////////////////////////////////////
+    if ((fconf = fopen("./lightpath_price.txt","r")) == NULL)
+    {
+        printf("Not find lightpath_price.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    fscanf(fconf, "Np#=%d Path#=%d\n", &Np, &Total_number_of_paths);
+
+    for(i = 0; i < Np; i ++)
+    {
+        for(j = 0; j < Np; j ++)
+        {
+            EPOC_Matrix[Vpe[i]][Vpe[j]] = -1;
+            Order_Request[i][j] = 0;
+
+            is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[Vpe[i]][Vpe[j]] = 0;
+            for(a = 0; a < MAX_A; a ++)
+                //for(a = 0; a < Total_number_of_carriers; a ++)
+            {
+
+                is_feasible_to_Buy_EPOC_lighpath[i][j][a] = 0;
+                is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[i]][Vpe[j]][a] = 0;
+                
+                EPOC_Path_Price[i][j][a] = 0;
+                EPOC_Path_Normal_Price[i][j][a] = 0;
+            }
+        }
+    }
+
+
+    for(i = 0; i < Ne; i ++)
+    {
+        for(j = 0; j < Ne; j ++)
+        {
+            is_Feasible_to_Sell_Connection[i][j] = 0;  //NICT 20210831
+            for(a = 0; a < MAX_A; a ++)
+            {
+                EPOC_Path_Cost[i][j][a] = 0;
+            }
+        }
+    }
+    fscanf(fconf, "Path-ID Source  Dest    Carrier-ID      Price   Normal_Price\n");
+
+    counter = 0;
+    //Align with DCI code which use carrier's edge node ID for declaring path price.
+    for(b = 0; b < Total_number_of_paths ; b ++)
+    {
+        int advertised_price, normal_price; //NICT20210927 in addition to the orginal version 3 advertised_price, after discussion with Subhadeep, we added a normal_price
+
+        fscanf(fconf, "%d\t%d\t%d\t%d\t%d\t%d\n",&id, &s, &d, &a, &advertised_price, &normal_price);
+
+        //fscanf(fconf, "%d",&id);
+        //fscanf(fconf, "%d",&s);
+        //fscanf(fconf, "%d",&d);
+        //fscanf(fconf, "%d",&a);
+        //fscanf(fconf, "%d\n",&price);
+        // printf("id:%d s=%d d=%d carrier_customer_id=%d price=%d\n", id, s, d, a, price);
+        //DCI program starts the id from 1. so modify the index as: id-1
+        //DCI program use Edge node id not the ESEN node ID.
+        //path_source[id-1] = Vpe[s];
+        //path_dest[id-1] = Vpe[d];
+
+        //NICT 20250325
+        //Turn the PNE node IDs in the lightpath_price.txt to carrier internal Edge node ID.
+        s = Vpe[s];
+        d = Vpe[d];
+        //Important
+                
+        if (s >= d)
+        {
+            int ttt;
+            ttt = s;
+            s = d;
+            d = ttt;
+        }
+        path_source[counter] = s; //not used
+        path_dest[counter] = d; //not used
+
+
+        counter ++;
+
+        is_feasible_EPOC_lighpath[Vep[s]][Vep[d]] = 1; //not used
+        is_feasible_EPOC_lighpath[Vep[d]][Vep[s]] = 1; //not used
+
+
+        if(a == self_carrier_customer_id)
+        {
+            EPOC_Matrix[s][d] = 1; //not used
+            EPOC_Matrix[d][s] = 1; //not used
+
+            //EPOC_Path_Price[s][d][a] = price;
+            //EPOC_Path_Cost[s][d][a] = price; // Temperoraylly, use Path_Cost as the price table.
+            EPOC_Path_Price[Vep[s]][Vep[d]][self_carrier_customer_id] = advertised_price;
+            EPOC_Path_Price[Vep[d]][Vep[s]][self_carrier_customer_id] = advertised_price;
+
+            EPOC_Path_Normal_Price[Vep[s]][Vep[d]][self_carrier_customer_id] = normal_price;
+            EPOC_Path_Normal_Price[Vep[d]][Vep[s]][self_carrier_customer_id] = normal_price;
+
+            EPOC_Path_Cost[s][d][self_carrier_customer_id] = advertised_price; //not used
+            
+            if(advertised_price == normal_price) //NICT 20230911 for the surviving resource lightpath_supports, it is allowed to use in carrier-carrier cooperation.// It is not considered to use any MASK to forbiden sell to some certain entities. it is a policy. to be studied.
+            {
+                is_Feasible_to_Sell_Connection[s][d] = 1;
+                is_Feasible_to_Sell_Connection[d][s] = 1;
+            }
+            
+            //is_feasible_to_Buy_EPOC_lighpath[s][d] = 0;
+            //is_feasible_to_Buy_EPOC_lighpath[d][s] = 0;
+        } else {
+            EPOC_Matrix[s][d] = 0; //not used
+            EPOC_Matrix[d][s] = 0; //not used
+            //EPOC_Path_Price[s][d][a] = price;
+            //EPOC_Path_Cost[s][d][a] = price; // Temperoraylly, use Path_Cost as the price table.
+            EPOC_Path_Price[Vep[s]][Vep[d]][a] = advertised_price;
+            EPOC_Path_Price[Vep[d]][Vep[s]][a] = advertised_price;
+            
+            EPOC_Path_Normal_Price[Vep[s]][Vep[d]][a] = normal_price;
+            EPOC_Path_Normal_Price[Vep[d]][Vep[s]][a] = normal_price;
+
+            EPOC_Path_Cost[s][d][a] = advertised_price; // not used
+
+            if(advertised_price == normal_price) //NICT 20220725 for the surviving resource lightpath_supports, it is allowed to use in carrier-carrier cooperation.
+            {
+                is_feasible_to_Buy_EPOC_lighpath[Vep[s]][Vep[d]][a] = 1;
+                is_feasible_to_Buy_EPOC_lighpath[Vep[d]][Vep[s]][a] = 1;
+
+                is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[s][d][a] = 1; //NICT 20210831
+                is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[d][s][a] = 1; //NICT 20210831
+                is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[s][d] = 1;
+                is_Exist_a_Target_Counterpart_Carrier_to_Buy_Lightpath[d][s] = 1;
+            }
+        }
+    }
+    fclose(fconf);
+
+
+    /* Original code with ESEN node id to identify the node
+    for(b = 0; b < Total_number_of_paths ; b ++)
+    {
+        fscanf(fconf, "%d %d %d %d %d\n",&id, &s, &d, &a, &price);
+       // printf("id:%d s=%d d=%d carrier_customer_id=%d price=%d\n", id, s, d, a, price);
+        //DCI program starts the id from 1. so modify the index as: id-1
+        //DCI program use Edge node id not the ESEN node ID.
+        path_source[id-1] = Vpe[s];
+        path_dest[id-1] = Vpe[d];
+
+
+
+        is_feasible_EPOC_lighpath[s][d] = 1;
+        is_feasible_EPOC_lighpath[d][s] = 1;
+
+
+        if(a == self_carrier_customer_id)
+        {
+            EPOC_Matrix[Vpe[i]][Vpe[j]] = 1;
+            EPOC_Matrix[Vpe[j]][Vpe[i]] = 1;
+
+            //EPOC_Path_Price[s][d][a] = price;
+            //EPOC_Path_Cost[s][d][a] = price; // Temperoraylly, use Path_Cost as the price table.
+            EPOC_Path_Price[s][d][0] = price;
+            EPOC_Path_Cost[s][d][0] = price;
+            //is_feasible_to_Buy_EPOC_lighpath[s][d] = 0;
+            //is_feasible_to_Buy_EPOC_lighpath[d][s] = 0;
+        }else{
+            EPOC_Matrix[Vpe[i]][Vpe[j]] = 0;
+            EPOC_Matrix[Vpe[j]][Vpe[i]] = 0;
+            //EPOC_Path_Price[s][d][a] = price;
+            //EPOC_Path_Cost[s][d][a] = price; // Temperoraylly, use Path_Cost as the price table.
+            EPOC_Path_Price[s][d][0] = price;
+            EPOC_Path_Cost[s][d][0] = price; // Temperoraylly, use Path_Cost as the price table.
+            is_feasible_to_Buy_EPOC_lighpath[s][d] = 1;
+            is_feasible_to_Buy_EPOC_lighpath[d][s] = 1;
+
+            is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[s]][Vpe[d]] = 1; //NICT 20210831
+            is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[d]][Vpe[s]] = 1; //NICT 20210831
+
+        }
+    }
+    fclose(fconf);
+    */
+
+
+    ////////////////
+    if ((fconf = fopen("./carrier_lightpath_requests.txt","r")) == NULL)
+    {
+        printf("Not find lightpath_requests.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+
+
+    fscanf(fconf, "Path#=%d Customer_Carrier#=%d\n", &Total_number_of_lightpath_requests, &A);
+
+    for(i = 0; i < MAX_LIGHTPATH_SUPPORT; i ++)
+    {
+        lightpath_support_source[i] = -1;
+        lightpath_support_dest[i] = -1;
+        lightpath_support_weight[i] = -1;
+        lightpath_support_customer_carrier_customer_id[i] = -1;
+    }
+
+    for(i = 0; i < Ne; i ++)
+    {
+        for(j = 0; j < Ne; j ++)
+        {
+            is_Required_to_Sell_Lightpath[i][j] = 0;
+
+            for (a = 0; a < A; a ++)
+            {
+                is_Required_to_Sell_Lightpath_to_Customer_Carrier[s][d][a] = 0;
+            }
+
+        }
+    }
+
+    counter = 0;
+
+
+    for(b = 0; b < Total_number_of_lightpath_requests ; b ++)
+    {
+        /*
+        //long int Bandwidth;
+        fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d bandwidth=%ld\n",&id, &s, &d, &a, &w, &is_esen, &Bandwidth);
+        // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+        amount = ceil((float) Bandwidth / 100000); //lightpaths unit.
+        */
+
+
+        fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d\n",&id, &s, &d, &a, &w, &is_esen, &Max_Bandwidth, &Min_Bandwidth, &Priority);
+        // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+        Bandwidth = Min_Bandwidth; //NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, the Min_Bandwidth is used.
+        w = Total_number_of_customer_lightpath_requests - Priority + 1;//NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, high Priority has low value. Here, Priority is translated to weight "w".
+
+        amount = ceil((float) Bandwidth / 100000); //lightpaths unit.
+
+
+
+        if(a != self_carrier_customer_id)
+        {
+
+            if(is_esen == 0) //means use the edge node ID
+            {
+                if(s < d)
+                {
+                    lightpath_support_source[counter] = s;
+                    lightpath_support_dest[counter] = d;
+
+                } else if (s >= d) {
+                    lightpath_support_source[counter] = d;
+                    lightpath_support_dest[counter] = s;
+
+                }
+
+            } else if(is_esen == 1)  {
+                //means use the ESE node ID (old name EPOC, new name PNE node) with mapping Vpe from ESE node namespace to edge namespace
+                if(Vpe[s] < Vpe[d])
+                {
+                    lightpath_support_source[counter] = Vpe[s];
+                    lightpath_support_dest[counter] = Vpe[d];
+
+                } else if (Vpe[s] >= Vpe[d] ) {
+                    lightpath_support_source[counter] = Vpe[d];
+                    lightpath_support_dest[counter] = Vpe[s];
+
+                }
+            }
+
+            lightpath_support_is_esen[counter] = is_esen;
+            lightpath_support_customer_carrier_customer_id[counter] = a; //customer ID (e.g., DCP) or carrier ID in a same namespace, e.g., carrier A a=0, carrier B a =1, DCP1 a=2, DCP2 a=3. Here the buyers are carriers.
+
+            lightpath_support_weight[counter] = w; //weight
+
+            is_Required_to_Sell_Lightpath[lightpath_support_source[counter]][lightpath_support_dest[counter]] += amount;
+            is_Required_to_Sell_Lightpath_to_Customer_Carrier[lightpath_support_source[counter]][lightpath_support_dest[counter]][lightpath_support_customer_carrier_customer_id[counter]] = amount;
+            counter ++;
+        }
+    }
+    Total_number_of_lightpath_requests = counter; //in one request, there might be multiple lightpaths
+    fclose(fconf);
+
+    ////////////////
+    if ((fconf = fopen("./customer_lightpath_requests.txt","r")) == NULL)
+    {
+        printf("Not find lightpath_requests.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+
+
+    fscanf(fconf, "Path#=%d Customer_Carrier#=%d\n", &Total_number_of_customer_lightpath_requests, &A);
+
+
+
+    for(i = 0; i < MAX_LIGHTPATH_SUPPORT; i ++)
+    {
+        customer_lightpath_support_source[i] = -1;
+        customer_lightpath_support_dest[i] = -1;
+        customer_lightpath_support_weight[i] = -1;
+        customer_lightpath_support_max_amount[i] = -1;
+        customer_lightpath_support_min_amount[i] = -1;
+        customer_lightpath_support_amount[i] = -1;
+        customer_lightpath_support_priority[i] = -1;
+
+        customer_lightpath_support_customer_carrier_customer_id[i] = -1;
+    }
+    counter = 0;
+    request_counter = Total_number_of_lightpath_requests; //including the carriers and customers requests.
+
+    for(b = 0; b < Total_number_of_customer_lightpath_requests ; b ++)
+    {
+        fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d\n",&id, &s, &d, &a, &w, &is_esen, &Max_Bandwidth, &Min_Bandwidth, &Priority);
+        // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+        Bandwidth = Min_Bandwidth; //NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, the Min_Bandwidth is used.
+        w = Total_number_of_customer_lightpath_requests - Priority + 1;//NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, high Priority has low value. Here, Priority is translated to weight "w".
+
+        amount = ceil((float) Bandwidth / 100000); //lightpaths unit.
+
+
+        if(a != self_carrier_customer_id)
+        {
+
+            if(is_esen == 0) //means use the edge node ID
+            {
+                if(s < d)
+                {
+                    i = s;
+                    j = d;
+
+                } else if (s >= d) {
+                    i = d;
+                    j = s;
+
+                }
+
+            } else {
+                //means use the ESE node ID (old name EPOC, new name PNE node) with mapping Vpe from ESE node namespace to edge namespace
+                if(Vpe[s] < Vpe[d])
+                {
+                    i = Vpe[s];
+                    j = Vpe[d];
+
+                } else {
+                    i = Vpe[d];
+                    j = Vpe[s];
+
+                }
+            }
+
+            /*
+            request_counter = -1;
+            for (m = 0; m <Total_number_of_lightpath_requests; m ++)
+            {
+                if(i == lightpath_support_source[m] && j  == lightpath_support_dest[m])
+                {
+                    request_counter = m;
+                    break;
+                }
+            }
+            */
+            request_counter = Total_number_of_lightpath_requests;
+            Total_number_of_lightpath_requests ++;
+            /*
+            if ( request_counter == -1 )
+            {
+                request_counter = Total_number_of_lightpath_requests;
+                Total_number_of_lightpath_requests ++;
+            }
+            */
+
+            //record the entire request of lightpaths including both of carriers and customers
+            lightpath_support_source[request_counter] = i;
+            lightpath_support_dest[request_counter] = j;
+
+            lightpath_support_is_esen[request_counter] = is_esen;
+
+            //record the request of lightpaths merely including customers
+            customer_lightpath_support_source[counter] = i;
+            customer_lightpath_support_dest[counter] = j;
+            customer_lightpath_support_is_esen[counter] = is_esen;
+
+
+            //if(lightpath_support_customer_carrier_customer_id [request_counter] == -1)
+            {
+                lightpath_support_customer_carrier_customer_id[request_counter] = a; //customer (e.g., DCI) and carrier ID
+                
+            }
+
+            customer_lightpath_support_customer_carrier_customer_id[counter] = a;
+
+            if(lightpath_support_weight[request_counter] < w)
+            {
+                lightpath_support_weight[request_counter] = w; //weight
+            }
+            customer_lightpath_support_weight[counter] = w;
+
+            customer_lightpath_support_max_amount[counter] = Max_Bandwidth;
+            customer_lightpath_support_min_amount[counter] = Min_Bandwidth;
+            customer_lightpath_support_priority[counter] = Priority;
+            customer_lightpath_support_amount[counter] = amount;
+
+            is_Required_to_Sell_Lightpath[lightpath_support_source[request_counter]][lightpath_support_dest[request_counter]] += amount;
+            is_Required_to_Sell_Lightpath_to_Customer_Carrier[lightpath_support_source[request_counter]][lightpath_support_dest[request_counter]][customer_lightpath_support_customer_carrier_customer_id[counter]] = amount;
+            counter ++;
+        }
+    }
+    Total_number_of_customer_lightpath_requests = counter;
+    fclose(fconf);
+
+
+    /*
+    for(b = 0; b < Total_number_of_lightpath_requests ; b ++)
+    {
+
+        printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d amount=%02d\n",
+               b,
+               lightpath_support_source[b],
+               lightpath_support_dest[b],
+               lightpath_support_customer_carrier_customer_id[b],
+               lightpath_support_weight[b],
+               is_Required_to_Sell_Lightpath_to_Customer_Carrier[lightpath_support_source[b]][lightpath_support_dest[b]][lightpath_support_customer_carrier_customer_id[b]]
+               );
+    }
+    */
+
+    ////////////////
+    if ((fconf = fopen("./connection_requests.txt","r")) == NULL)//only for the customers' IP over WDM packet level connections.
+    {
+        printf("Not find connection_requests.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+
+
+    fscanf(fconf, "Path#=%d Customer_Carrier#=%d\n", &Total_number_of_customer_connection_requests, &A);
+
+    for(i = 0; i < Total_number_of_customer_connection_requests; i ++)
+    {
+        customer_traffic_request_source[i] = -1;
+        customer_traffic_request_dest[i] = -1;
+        customer_traffic_request_weight[i] = -1;
+        customer_traffic_request_volume[i] = -1;
+        customer_traffic_request_max_volume[i] = -1;
+        customer_traffic_request_min_volume[i] = -1;
+        customer_traffic_request_priority[i] = -1;
+
+        customer_traffic_request_customer_carrier_customer_id[i] = -1;
+    }
+
+    counter = 0;
+    request_counter = 0;
+
+
+    for(b = 0; b < Total_number_of_customer_connection_requests ; b ++)
+    {
+
+        fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d\n",&id, &s, &d, &a, &w, &is_esen, &Max_Bandwidth, &Min_Bandwidth, &Priority);
+        // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+        Bandwidth = Min_Bandwidth; //NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, the Min_Bandwidth is used.
+        w = Total_number_of_customer_connection_requests - Priority + 1;//NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, high Priority has low value. Here, Priority is translated to weight "w".
+
+        if (w <= 0)
+        {
+            w = 1;
+        }
+        //20220429 in Mbps unit amount = (int) (Bandwidth/1000); //Gbps unit
+        amount = (int) (Bandwidth); //Mbps unit
+
+
+        if(a != self_carrier_customer_id)
+        {
+            if(is_esen == 0) //means use the edge node ID
+            {
+                if ( s > d )
+                { 
+                    int ttt;
+                    ttt = s;
+                    s = d;
+                    d = ttt;
+                    
+                }
+                /*
+                request_counter = -1;
+                for (m = 0; m <Total_number_of_requests; m ++)
+                {
+                    if(s == source[m] && d == dest[m])
+                    {
+                        request_counter = m;
+                        break;
+                    }
+                }
+
+                if ( request_counter == -1 )
+                {
+                    request_counter = Total_number_of_requests;
+                    Total_number_of_requests ++;
+                }
+                */
+
+                request_counter = Total_number_of_requests;
+                Total_number_of_requests ++;
+
+                source[request_counter] = s;
+                dest[request_counter] = d;
+                customer_carrier_customer_id[request_counter] = a;
+
+                customer_traffic_request_source[counter] = s;
+                customer_traffic_request_dest[counter] = d;
+                customer_traffic_request_customer_carrier_customer_id[counter] = a; //customer (e.g., DCP) or carrier
+                
+
+
+            } else if (is_esen == 1)
+            {
+                
+                //means use the ESE node ID (old name EPOC, new name PNE node) with mapping Vpe from ESE node namespace to edge namespace
+                /*
+                request_counter = -1;
+                for (m = 0; m <Total_number_of_requests; m ++)
+                {
+                    if(Vpe[s] == source[m] && Vpe[d] == dest[m])
+                    {
+                        request_counter = m;
+                        break;
+                    }
+                }
+
+                if ( request_counter == -1 )
+                {
+
+                    request_counter = Total_number_of_requests;
+                    Total_number_of_requests ++;
+
+                }
+                */
+                if ( Vpe[s] > Vpe[d])
+                { 
+                    int ttt;
+                    ttt = s;
+                    s = d;
+                    d = ttt;
+                    
+                }
+                s = Vpe[s];
+                d = Vpe[d];
+                
+                request_counter = Total_number_of_requests;
+                Total_number_of_requests ++;
+
+                source[request_counter] = s;
+                dest[request_counter] = d;
+                customer_carrier_customer_id[request_counter] = a;
+
+
+                customer_traffic_request_source[counter] = s;
+                customer_traffic_request_dest[counter] = d;
+                customer_traffic_request_customer_carrier_customer_id[counter] = a; //customer (e.g., DCP) or carrier
+
+            }
+
+            //  printf("Added requests request counter %02d, source %02d dest %02d\n", request_counter, source[request_counter], dest[request_counter]);
+
+            if( weight[request_counter] < w )
+                weight[request_counter] = w; //weight
+
+            customer_traffic_request_weight[counter] = w;
+
+            customer_traffic_request_volume[counter] = amount;
+            customer_traffic_request_max_volume[counter] = Max_Bandwidth;
+            customer_traffic_request_min_volume[counter] = Min_Bandwidth;
+            customer_traffic_request_priority[counter] = Priority;
+            customer_traffic_request_is_esen[counter] = is_esen;
+
+            Traffic_Matrix[a][source[request_counter]][dest[request_counter]] += amount;
+            Traffic_Matrix[a][dest[request_counter]][source[request_counter]] += amount;
+
+            counter ++;
+        }
+    }
+
+    fclose(fconf);
+
+    Total_number_of_customer_connection_requests = counter;
+    
+    
+    
+        /////////////////////////////////////////////////////////////////////
+
+
+    Analysis_Requests_Need_Recovery_After_PSMT();
+    
+    
+
+    ////////////////
+    if ((fconf = fopen("./given_carrier_lightpath_supports.txt","r")) == NULL)
+    {
+//NICT 20250326
+//        printf("Not find given_carrier_lightpath_supports.txt.\n");
+        //    fclose(fconf);
+        //exit(0);
+
+        //means that no use of this carrier policy feature. NICT2022
+
+        for(i = 0; i < MAX_LIGHTPATH_SUPPORT; i ++)
+        {
+            given_lightpath_support_i_source[i] = -1;
+            given_lightpath_support_i_dest[i] = -1;
+            given_lightpath_support_i_weight[i] = -1;
+            given_lightpath_support_i_amount[i] = -1;
+            given_lightpath_support_i_customer_carrier_customer_id[i] = -1;
+            
+
+            given_lightpath_support_II_source[i] = -1;
+            given_lightpath_support_II_dest[i] = -1;
+            given_lightpath_support_II_weight[i] = -1;
+            given_lightpath_support_II_amount[i] = -1;
+            given_lightpath_support_II_customer_carrier_customer_id[i] = -1;
+            
+        }
+
+        for(i = 0; i < Ne; i ++)
+        {
+            for(j = 0; j < Ne; j ++)
+            {
+                for(a = 0; a < A; a ++)
+                {
+                    is_Given_Lightpath_Support_i_By_Carrier[i][j][a] = UPPER_LIMIT_SUPPORT;
+                    is_Given_Lightpath_Support_II_By_Carrier[i][j][a] = UPPER_LIMIT_SUPPORT;
+                    
+                }
+                
+            }
+        }
+    } else {
+        //printf("Printing given_carrier_lightpath_supports.txt.\n");
+
+        fscanf(fconf, "Path#=%d Customer_Carrier#=%d\n", &Total_number_of_lightpath_supports, &A);
+
+        for(i = 0; i < MAX_LIGHTPATH_SUPPORT; i ++)
+        {
+            given_lightpath_support_i_source[i] = -1;
+            given_lightpath_support_i_dest[i] = -1;
+            given_lightpath_support_i_weight[i] = -1;
+            given_lightpath_support_i_amount[i] = -1;
+            given_lightpath_support_i_customer_carrier_customer_id[i] = -1;
+
+            given_lightpath_support_II_source[i] = -1;
+            given_lightpath_support_II_dest[i] = -1;
+            given_lightpath_support_II_weight[i] = -1;
+            given_lightpath_support_II_amount[i] = -1;
+            given_lightpath_support_II_customer_carrier_customer_id[i] = -1;
+        }
+
+        for(i = 0; i < Ne; i ++)
+        {
+            for(j = 0; j < Ne; j ++)
+            {
+                for(a = 0; a < A; a ++)
+                {
+                    is_Given_Lightpath_Support_i_By_Carrier[i][j][a] = 0;
+                    is_Given_Lightpath_Support_II_By_Carrier[i][j][a] = 0;
+                }
+            }
+        }
+
+        counter = 0;
+        counter2 = 0;
+
+        for(b = 0; b < Total_number_of_lightpath_supports ; b ++)
+        {
+
+            /*
+            //long int Bandwidth;
+            fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d bandwidth=%ld\n",&id, &s, &d, &a, &w, &is_esen, &Bandwidth);
+            // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+            amount = ceil((float) Bandwidth / 100000); //lightpaths unit.
+            */
+
+
+            fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d Lightpath_Support_type=%d\n",&id, &s, &d, &a, &w, &is_esen, &Max_Bandwidth, &Min_Bandwidth, &Priority, &lightpath_support_type);
+            // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+
+            Bandwidth = Min_Bandwidth; //NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, the Min_Bandwidth is used.
+            w = Total_number_of_customer_lightpath_requests - Priority + 1;//NICT2022 concurrent DCPs ECOC2022, in the CSPT low-bound request trial, high Priority has low value. Here, Priority is translated to weight "w".
+
+            amount = ceil((float) Bandwidth / 100000); //lightpaths unit.
+
+
+
+            if( lightpath_support_type == 1)
+            {
+                if(a != self_carrier_customer_id)
+                {
+                    
+                    if(is_esen == 0) //means use the edge node ID
+                    {
+                        if(s < d)
+                        {
+                            given_lightpath_support_i_source[counter] = s;
+                            given_lightpath_support_i_dest[counter] = d;
+                        } else if (s >= d) {
+                            given_lightpath_support_i_source[counter] = d;
+                            given_lightpath_support_i_dest[counter] = s;
+                        }
+                        
+                        if(EPOC_Path_Price[Vep[s]][Vep[d]][a] == EPOC_Path_Normal_Price[Vep[s]][Vep[d]][a])
+                        {
+
+                        //Because, the given_carrier_lightpath_supports means force to use, there have been already checked in previous demanding phase. now it is the phase to use lightpath of counter part carriers a.
+                        //is_feasible_to_Buy_EPOC_lighpath[Vep[s]][Vep[d]][a] = 1;
+                        //is_feasible_to_Buy_EPOC_lighpath[Vep[d]][Vep[s]][a] = 1;
+
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[s][d][a] = 1; //NICT 20210831
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[d][s][a] = 1; //NICT 20210831
+                            is_Given_Lightpath_Support_i_By_Carrier[s][d][a] = amount;
+                            is_Given_Lightpath_Support_i_By_Carrier[d][s][a] = amount;
+                        }
+                    } else if(is_esen == 1) {
+                        //means use the PNE node ID (old name EPOC, new name PNE node) with mapping Vpe from PNE node namespace to internal edge namespace
+                        if(Vpe[s] < Vpe[d])
+                        {
+                            given_lightpath_support_i_source[counter] = Vpe[s];
+                            given_lightpath_support_i_dest[counter] = Vpe[d];
+                        } else {
+                            given_lightpath_support_i_source[counter] = Vpe[d];
+                            given_lightpath_support_i_dest[counter] = Vpe[s];
+                        }
+                        
+                        if(EPOC_Path_Price[s][d][a] == EPOC_Path_Normal_Price[s][d][a])
+                        {
+                            //Because, the given_carrier_lightpath_supports means force to use, there have been already checked in previous demanding phase. now it is the phase to use lightpath of counter part carriers a.
+
+                        //is_feasible_to_Buy_EPOC_lighpath[s][d][a] = 1; //NICT 20230911 added [a]
+                        //is_feasible_to_Buy_EPOC_lighpath[d][s][a] = 1; //NICT 20230911 added [a]
+
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[s]][Vpe[d]][a] = 1; //NICT 20210831 added [a] 20230911
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[d]][Vpe[s]][a] = 1; //NICT 20210831
+                            is_Given_Lightpath_Support_i_By_Carrier[Vpe[s]][Vpe[d]][a] = amount;
+                            is_Given_Lightpath_Support_i_By_Carrier[Vpe[d]][Vpe[s]][a] = amount;
+                        }
+                    }
+                    
+                    given_lightpath_support_i_customer_carrier_customer_id[counter] = a; //customer ID (e.g., DCP) or carrier ID in a same namespace, e.g., carrier A a=0, carrier B a =1, DCP1 a=2, DCP2 a=3. Here the buyers are carriers.
+                    
+                    given_lightpath_support_i_is_esen[counter] = is_esen;
+                    given_lightpath_support_i_weight[counter] = w; //weight
+                    given_lightpath_support_i_amount[counter] = amount; //weight
+                    is_Given_Lightpath_Support_i[given_lightpath_support_i_source[counter]][given_lightpath_support_i_dest[counter]] += amount;
+                    
+                    counter ++;
+                }
+            }else if(lightpath_support_type == 2)
+            {
+                if(a != self_carrier_customer_id)
+                {
+                    
+                    if(is_esen == 0) //means use the edge node ID
+                    {
+                        if(s < d)
+                        {
+                            given_lightpath_support_II_source[counter2] = s;
+                            given_lightpath_support_II_dest[counter2] = d;
+                        } else if (s >= d) {
+                            given_lightpath_support_II_source[counter2] = d;
+                            given_lightpath_support_II_dest[counter2] = s;
+                        }
+                        
+                        //if(EPOC_Path_Price[Vep[s]][Vep[d]][a] == EPOC_Path_Normal_Price[Vep[s]][Vep[d]][a])
+                        {
+
+                        //Because, the given_carrier_lightpath_supports means force to use, there have been already checked in previous demanding phase. now it is the phase to use lightpath of counter part carriers a.
+                        //is_feasible_to_Buy_EPOC_lighpath[Vep[s]][Vep[d]][a] = 1;
+                        //is_feasible_to_Buy_EPOC_lighpath[Vep[d]][Vep[s]][a] = 1;
+
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[s][d][a] = 1; //NICT 20210831
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[d][s][a] = 1; //NICT 20210831
+                            is_Given_Lightpath_Support_II_By_Carrier[s][d][a] = amount;
+                            is_Given_Lightpath_Support_II_By_Carrier[d][s][a] = amount;
+                        }
+                    } else {
+                        //means use the PNE node ID (old name EPOC, new name PNE node) with mapping Vpe from PNE node namespace to internal edge namespace
+                        if(Vpe[s] < Vpe[d])
+                        {
+                            given_lightpath_support_II_source[counter2] = Vpe[s];
+                            given_lightpath_support_II_dest[counter2] = Vpe[d];
+                        } else  {
+                            given_lightpath_support_II_source[counter2] = Vpe[d];
+                            given_lightpath_support_II_dest[counter2] = Vpe[s];
+                        }
+                        
+                        //if(EPOC_Path_Price[s][d][a] == EPOC_Path_Normal_Price[s][d][a])
+                        {
+                            //Because, the given_carrier_lightpath_supports means force to use, there have been already checked in previous demanding phase. now it is the phase to use lightpath of counter part carriers a.
+
+                        //is_feasible_to_Buy_EPOC_lighpath[s][d][a] = 1; //NICT 20230911 added [a]
+                        //is_feasible_to_Buy_EPOC_lighpath[d][s][a] = 1; //NICT 20230911 added [a]
+
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[s]][Vpe[d]][a] = 1; //NICT 20210831 added [a] 20230911
+                        //is_Feasible_to_Buy_Lightpath_Support_i_of_a_Carrier[Vpe[d]][Vpe[s]][a] = 1; //NICT 20210831
+                            is_Given_Lightpath_Support_II_By_Carrier[Vpe[s]][Vpe[d]][a] = amount;
+                            is_Given_Lightpath_Support_II_By_Carrier[Vpe[d]][Vpe[s]][a] = amount;
+                        }
+                    }
+                    
+                    given_lightpath_support_II_customer_carrier_customer_id[counter2] = a; //customer ID (e.g., DCP) or carrier ID in a same namespace, e.g., carrier A a=0, carrier B a =1, DCP1 a=2, DCP2 a=3. Here the buyers are carriers.
+                    
+                    given_lightpath_support_II_weight[counter2] = w; //weight
+                    given_lightpath_support_II_amount[counter2] = amount; //weight
+                    given_lightpath_support_II_is_esen[counter2] = is_esen; //weight
+                    is_Given_Lightpath_Support_II[given_lightpath_support_II_source[counter2]][given_lightpath_support_II_dest[counter2]] += amount;
+                    
+                    counter2 ++;
+                }
+                
+                
+                
+                
+            }
+        }
+        Total_number_of_Buy_lightpath_supports_i = counter; //in one request, there might be multiple lightpaths
+        Total_number_of_Buy_lightpath_supports_II = counter2; //in one request, there might be multiple lightpaths
+        fclose(fconf);
+    }
+    
+    /////
+    ///MUST Recovery Fiber links
+    for ( m = 0; m < N; m ++)
+    {
+        for (n = 0; n < N; n ++)
+        {
+            is_MUST_Recovery_Bmn_solution[m][n] = 0;
+        }
+    }
+    
+    
+    if ((fconf = fopen("./MUST_Recovery_Bmn_solution.temp","r")) == NULL)
+    {
+//NICT 20250326
+//        printf("Not find MUST_Recovery_Bmn_solution.temp.\n");
+    }else{
+        
+        fscanf(fconf, "%d\n", &i);
+        Total_number_of_fiber_link_must_recovery_solutions = 0;// Total_number_of_solutions;
+
+        for (counter = 0; counter < i; counter ++)
+        {
+            fscanf(fconf, "Bm%02dn%02d\n", &m, &n);
+            is_MUST_Recovery_Bmn_solution[m][n] = 1;
+            is_MUST_Recovery_Bmn_solution[n][m] = 1;
+        }
+        fclose(fconf);
+    }
+    /////
+
+    
+    
+
+    //// Added for distinguishing the original requests in the new DCP request set. For example, before disasters, DCP has its own original requests, in disaster, some connection requests were damaged.
+    if ((fconf = fopen("./original_requests.txt","r")) == NULL)
+    {
+        printf("Not find original_requests.txt.\n");
+        //    fclose(fconf);
+        exit(0);
+    }
+
+    for (i = 0; i < Ne; i ++)
+    {
+        for(j = i + 1; j < Ne; j ++)
+        {
+            for(a = 0; a < MAX_A; a ++)
+                is_Original_Customer_Request[a][i][j] = 0;
+        }
+    }
+
+    fscanf(fconf, "Path#=%d Customer_Carrier#=%d\n", &Total_number_of_original_customer_connection_requests, &A);
+
+    for(b = 0; b < Total_number_of_original_customer_connection_requests ; b ++)
+    {
+        //long int Bandwidth;
+        //fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d bandwidth=%ld\n",&id, &s, &d, &a, &w, &is_esen, &Bandwidth);
+        // printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d is_esen=%d amount=%02d\n",id, s, d, a, w, is_esen, amount);
+        //amount = (int) (Bandwidth/1000); //Gbps unit
+
+        fscanf(fconf, "path-id:%d s=%d d=%d customer/carrier_id=%d weight=%d is_esen=%d Max_bandwidth=%ld Min_bandwidth=%ld Priority=%d\n",&id, &s, &d, &a, &w, &is_esen, &Max_Bandwidth, &Min_Bandwidth, &Priority);
+
+        Bandwidth = Min_Bandwidth;
+
+        amount = (int) (Bandwidth); //Gbps unit
+
+        if(a != self_carrier_customer_id)
+        {
+            if(is_esen == 0) //means use the edge node ID
+            {
+                if ( s > d )
+                {
+                    int ttt;
+                    ttt = s;
+                    s = d;                    
+                    d = ttt;                    
+                }
+        
+                is_Original_Customer_Request[a][s][d] = 1;
+                is_Original_Customer_Request_is_esen[a][s][d] = is_esen;
+            } else if(is_esen == 1){
+                if ( Vpe[s] > Vpe[d] )
+                {
+                    int ttt;
+                    ttt = s;
+                    s = d;                    
+                    d = ttt;                    
+                }
+        
+                is_Original_Customer_Request[a][Vpe[s]][Vpe[d]] = 1;
+                is_Original_Customer_Request_is_esen[a][Vpe[s]][Vpe[d]] = is_esen;
+            }
+        }
+    }
+
+    fclose(fconf);
+
+    ////
+
+    /*
+    for(b = 0; b < Total_number_of_customer_connection_requests ; b ++)
+    {
+        printf("path-id:%04d s=%02d d=%02d customer/carrier_customer_id=%02d weight=%04d amount=%02d\n",
+               b,
+               customer_traffic_request_source[b],
+               customer_traffic_request_dest[b],
+               customer_traffic_request_customer_carrier_customer_id[b],
+               customer_traffic_request_weight[b],
+               customer_traffic_request_volume[b]
+               );
+    }
+    */
+
+    if ((argc >= 3) && (strcmp(argv[1], "-e") == 0))
+    {
+        Output_Customer_IP_over_WDM_Connection_Request_Results();
+        exit(1);
+    }
+
+    if ((argc >= 3) && (strcmp(argv[1], "-o") == 0))
+    {
+        Output_Customer_Lightpath_Support_Request_Results();
+        exit(1);
+    }
+
+
+
+////////////////////////////////////////////////////////
+    /*
+        system("cat task-balance-sheet.txt |grep Ai |awk '{print $2, 1}' > task-balance");
+        system("cat task-balance |wc -l > task-sheet.txt");
+        system("cat task-balance >> task-sheet.txt");
+      */
+    /*
+        if ((fconf = fopen("./task-sheet.txt","r")) == NULL)
+        {
+            printf("Not find task-sheet file.\n");
+            //    fclose(fconf);
+            exit(0);
+        }
+
+
+        fscanf(fconf, "%ld\n", &counter);
+
+        for(m = 0; m < counter; m ++)
+        {
+            fscanf(fconf, "Ai%02dj%02d-a%02d %d\n", &i,&j, &a, &b); //Aija: segment recovery task Assignment. a: assigned to carrier a, b: required number of lightpaths
+
+            if(is_feasible_EPOC_lighpath[i][j] == 0)
+            {
+                printf("Error in reading task-sheet.txt, since no carrier declared to offer lightpath between node i:%d j:%d, please check the path_price_epoc.txt or task-sheet.txt\n", i, j);
+                fclose(fconf);
+                exit(0);
+            }
+
+            if(a == self_carrier_customer_id)
+            {
+                Order_Request[i][j] = b;
+                EPOC_Matrix[Vpe[i]][Vpe[j]] = 1;
+                EPOC_Matrix[Vpe[j]][Vpe[i]] = 1;
+                is_Required_to_Sell_EPOC_Lightpath[i][j] = b;
+                is_Required_to_Sell_EPOC_Lightpath[j][i] = b;
+                is_Required_to_Sell_Lightpath[Vpe[i]][Vpe[j]] = b; //NICT 20210831 ESEN+DCI
+                is_Required_to_Sell_Lightpath[Vpe[j]][Vpe[i]] = b; //NICT 20210831 ESEN+DCI
+            }else{
+                Order_Request[i][j] = 0;
+                EPOC_Matrix[Vpe[i]][Vpe[j]] = 0;
+                EPOC_Matrix[Vpe[j]][Vpe[i]] = 0;
+                is_Required_to_Sell_EPOC_Lightpath[i][j] = 0;
+                is_Required_to_Sell_EPOC_Lightpath[j][i] = 0;
+                is_Required_to_Sell_Lightpath[Vpe[i]][Vpe[j]] = 0; //NICT 20210831 ESEN+DCI
+                is_Required_to_Sell_Lightpath[Vpe[j]][Vpe[i]] = 0; //NICT 20210831 ESEN+DCI
+            }
+        }
+
+        fclose(fconf);
+    */
+////////////////////////
+
+
+
+
+
+
+    if ((frhs = fopen("./nosolution.txt","r")) != NULL)
+    {
+        printf("No solution\n");
+        //fclose(frhs);
+        exit(1);
+    }
+
+    for (m = 0; m < N; m++)
+        for (n = 0; n < N; n++)
+            is_test_set[m][n] = 0;
+
+
+
+    if ((frequest = fopen("1requests","r")) == NULL)
+    {
+        lambda_start = 0;
+        lambda_end = W; //OOO
+        /*
+        	for (node_pair_id = 0 ; node_pair_id < Total_number_of_trial; node_pair_id ++)
+                {
+                    m = test_m[node_pair_id];
+                    n = test_n[node_pair_id];
+                    is_test_set[m][n] = test_weight[node_pair_id];
+        	    is_test_set[n][m] = test_weight[node_pair_id];
+                }
+          */
+        // use the default info MATRIX
+    } else {
+        // Here, if the file request exists, say, it is not the first run, the last one will be removed
+        if ((ftransponder1 = fopen("1transponder1","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((ftransponder2 = fopen("1transponder2","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((fwavelength = fopen("1wavelength","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((flink = fopen("1link","r")) == NULL)
+        {
+            exit(1);
+        }
+
+
+        fscanf(frequest, "N%d Ne%d C%d W%d R%d\n",&i, &j, &m, &lambda_start, &Total_number_of_requests);
+        node_pair_id = 0;
+        while (fscanf(frequest, "%2d %2d\n",&source[node_pair_id], &dest[node_pair_id]) != EOF)
+        {
+            node_pair_id ++;
+        }
+
+        fscanf(ftransponder1, "N%d Ne%d C%d W%d R%d\n",&i, &j, &m, &lambda_start, &Total_number_of_requests);
+        while (fscanf(ftransponder1, "%2d %2d\n",&i, &j) != EOF)
+        {
+            F_i[i] = j;
+        }
+
+        fscanf(ftransponder2, "N%d Ne%d C%d W%d R%d\n",&i, &j, &m, &lambda_start, &Total_number_of_requests);
+        for (c = 0; c < C; c++)
+        {
+            for (w = 0; w < W; w++)
+            {
+                for (i = 0; i < N; i++)
+                {
+                    fscanf(ftransponder2, "%2d ",&F_c_w_i[c][w][i]);
+                }
+                fscanf(ftransponder2, "\n");
+            }
+        }
+
+        fscanf(fwavelength, "N%d Ne%d C%d W%d R%d\n",&i, &j, &m, &lambda_start, &Total_number_of_requests);
+        for (w = 0; w < W; w++)
+        {
+            for (m = 0; m < N; m++)
+            {
+                for (n = 0; n < N; n++)
+                {
+                    // for (i = 0; i < N; i ++)
+                    fscanf(fwavelength, "%2d ", &U_w_m_n[w][m][n]);
+                }
+                fscanf(fwavelength, "\n");
+            }
+        }
+
+        fscanf(flink, "N%d Ne%d C%d W%d R%d\n",&i, &j, &m, &lambda_start, &Total_number_of_requests);
+        for (m = 0; m < N; m++)
+        {
+            for (n = 0; n < N; n++)
+            {
+                // for (i = 0; i < N; i ++)
+                fscanf(flink, "%2d ", &Link[m][n]);
+            }
+            fscanf(flink, "\n");
+        }
+
+        fclose(frequest);
+        fclose(ftransponder1);
+        fclose(ftransponder2);
+        fclose(fwavelength);
+        fclose(flink);
+        lambda_end = lambda_start + 1;
+
+        if (lambda_end > W)
+        {
+            printf("Have searched for the last lambda\n");
+            exit(0);
+        }
+    }
+
+
+    for (node_pair_id = 0 ; node_pair_id < Total_number_of_trial; node_pair_id ++)
+    {
+        m = test_m[node_pair_id];
+        n = test_n[node_pair_id];
+
+        if (Link[m][n] > 0)
+        {
+            is_test_set[m][n] = test_weight[node_pair_id];
+            is_test_set[n][m] = test_weight[node_pair_id];
+        }
+    }
+
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+    {
+        printf("Node pair ID: %d s %2d d %2d\n", node_pair_id, source[node_pair_id], dest[node_pair_id]);
+    }
+
+    for (m = 0; m < N; m++)
+    {
+        printf("Node ID: %d F_i %2d\n", m, F_i[m]);
+    }
+
+    for (c = 0; c < C; c++)
+    {
+        for (w = 0; w < W; w++)
+        {
+            for (i = 0; i < N; i++)
+            {
+                printf("%2d ",F_c_w_i[c][w][i]);
+            }
+            printf("\n");
+        }
+    }
+
+    for (w = lambda_start; w < lambda_end; w++)
+    {
+        for (m = 0; m < N; m++)
+        {
+            for (n = 0; n < N; n++)
+            {
+                printf("%2d ",U_w_m_n[w][m][n]);
+            }
+            printf("\n");
+        }
+    }
+
+    for (m = 0; m < N; m++)
+    {
+        for (n = m + 1; n < N; n++)
+        {
+            if (is_test_set[m][n] > 0)
+                printf("m%02d-n%02d  weight%d\n", m, n, is_test_set[m][n]);
+        }
+
+    }
+
+    if ((fconstraints = fopen("constraints","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fvariables= fopen("variables","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((frhs = fopen("rhs","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fbounds = fopen("bounds","w")) == NULL)
+    {
+        exit(1);
+    }
+
+//      12345678901234567890123456789012345678901234567890
+    fprintf(fconstraints,"NAME          RCONMILP\n");
+    fprintf(fconstraints,"ROWS\n");
+    fprintf(fconstraints," N  00000000\n");
+
+    fprintf(frhs,"    INT1      'MARKER'                 'INTEND'\n");
+    fprintf(frhs,"RHS\n");
+
+    counter = 0;
+    var = (char*) malloc(MAX_VAR * 40);
+    memset(var,'\0', MAX_VAR *40);
+
+    // size = sizeof(long int)* Ne*Ne*C*W*Ne*Ne*N*N;
+    size = sizeof(long int)*Z*C*W*Ne*Ne*N*N;
+    pVarID_P = (long int*) malloc(size);
+    memset(pVarID_P,'\0', size);
+
+
+    size = sizeof(long int)*Ne*Ne*N*N;
+    pVarID_M = (long int*) malloc(size);
+    memset(pVarID_M,'\0', size);
+
+    size = sizeof(long int)* (N*N);
+    pVarID_B = (long int*) malloc(size);
+    memset(pVarID_B,'\0', size);
+
+    size = sizeof(long int)* (Ne);
+    pVarID_U = (long int*) malloc(size);
+    memset(pVarID_U,'\0', size);
+
+    size = sizeof(long int)* (Z*W*Ne*Ne);
+    pVarID_V = (long int*) malloc(size);
+    memset(pVarID_V,'\0', size);
+
+    size = sizeof(long int)* (A*Ne*Ne);
+    pVarID_C = (long int*) malloc(size);
+    memset(pVarID_C,'\0', size);
+
+    size = sizeof(long int)* (A*Ne*Ne*Ne*Ne);
+    pVarID_X = (long int*) malloc(size);
+    memset(pVarID_X,'\0', size);
+
+    size = sizeof(long int)* (Ne*Ne*A);
+    pVarID_D = (long int*) malloc(size);
+    memset(pVarID_D,'\0', size);
+
+    size = sizeof(long int)* (Ne*Ne*A);
+    pVarID_O = (long int*) malloc(size);
+    memset(pVarID_O,'\0', size);
+
+//   size = sizeof(long int)* Ne*Ne*C*W*Ne*Ne*N;
+//   pVarID_R = (long int*) malloc(size);
+//   memset(pVarID_R,'\0', size);
+
+//    size = sizeof(long int)* Ne*Ne*C*W*Ne*Ne;
+//    pVarID_Y = (long int*) malloc(size);
+//   memset(pVarID_Y,'\0', size);
+
+
+//    size = sizeof(long int)* (Ne*Ne*Ne);
+//    pVarID_A = (long int*) malloc(size);
+//    memset(pVarID_A,'\0', size);
+    //  UUU;
+
+    BBB; //Beta_mn
+    CCC; //Alpha_sd
+
+
+    PPP; //P_mn^(ij)w
+    MMM; //M_mn^(ij)
+
+    XXX; //Lambda_ij^sd
+    UUU; //mu_b
+    VVV; //v_ij^w
+
+    DDD; //Delta_ija
+    OOO; //o_ij NICT 20210831
+
+    /*
+    Total_number_of_Oija = 0;
+    Start_number_of_Oija = counter;
+    for (node_pair_id = 0; node_pair_id < Total_number_of_lightpath_requests; node_pair_id ++)
+    {
+        i = lightpath_support_source[node_pair_id];
+        j = lightpath_support_dest[node_pair_id];
+        a = lightpath_support_customer_carrier_customer_id[node_pair_id];
+        if(
+            (F_i[Ve[i]] > 0 &&  F_i[Ve[j]] > 0)
+            &&
+            !(
+            is_In_Outside_Edge_Node_Set(i)
+            &&
+            is_In_Inside_Edge_Node_Set(j)
+            )
+            &&
+            !(
+            is_In_Outside_Edge_Node_Set(j)
+            &&
+            is_In_Inside_Edge_Node_Set(i)
+            )
+            &&
+            is_feasible_lightpath[i][j] == 1
+            &&
+            is_Required_to_Sell_Lightpath_to_Customer_Carrier[i][j][a] > 0
+        )
+        {
+            pcurrent_var = Get_VarID_O(i,j,a);
+            *pcurrent_var = counter;
+            sprintf(str,"Oi%02dj%02da%02d", Ve[i],Ve[j],a);
+            if(debug == 1)
+            {
+                printf("VARS: %08ld Oi%02dj%02da%02d\n", counter, Ve[i],Ve[j],a);
+            }
+            strcpy((var+counter*40),str);
+            counter ++;
+            Total_number_of_Oija ++;
+        }
+    }
+    */
+
+//  RRR;
+//  YYY;
+//  AAA;
+
+
+
+    Start_number_of_Rsdcwija = counter;
+    Start_number_of_Ysdcwij = counter;
+    Start_number_of_Asda = counter;
+
+
+
+    if ((argc >= 3)
+            &&
+            (
+                strcmp(argv[1], "-m") == 0 //modeling only
+                ||
+                strcmp(argv[1], "-s") == 0 // include modelling and solving
+            )
+       )
+    {
+
+
+
+        Total_number_of_vars = counter;
+
+        Ppth1();
+        pthread_t pth[7];	// this is our thread identifier
+
+//       pthread_create(&pth[0],NULL,pth1,(void *) "Hello");
+
+
+        pthread_create(&pth[1],NULL,pth2,(void *) "Hello");
+
+        pthread_create(&pth[2],NULL,pth3,(void *) "Hello");
+
+        pthread_create(&pth[3],NULL,pth4,(void *) "Hello");
+
+        pthread_create(&pth[4],NULL,pth5,(void *) "Hello");
+
+        pthread_create(&pth[5],NULL,pth6,(void *) "Hello");
+        ;
+        pthread_create(&pth[6],NULL,pth7,(void *) "Hello");
+
+        pthread_create(&pth[7],NULL,pth8,(void *) "Hello");
+
+        while (finished <7)
+        {
+            sleep(1);
+        }
+        free(pVarID_P);
+        free(pVarID_M);
+
+        free(pVarID_B);
+        free(pVarID_U);
+        free(pVarID_V);
+        free(pVarID_X);
+        free(pVarID_C);
+        free(pVarID_D);
+        free(pVarID_O);// NICT 20210831
+//   free(pVarID_R);
+//   free(pVarID_Y);
+//   free(pVarID_A);
+
+        //exit(1);
+        if ((fconstraints1 = fopen("constraints1","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((fvariables1 = fopen("variables1","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((frhs1= fopen("rhs1","r")) == NULL)
+        {
+            exit(1);
+        }
+        if ((fbounds1 = fopen("bounds1","r")) == NULL)
+        {
+            exit(1);
+        }
+        /*
+                if ((fconstraints2 = fopen("constraints2","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables2 = fopen("variables2","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs2 = fopen("rhs2","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds2 = fopen("bounds2","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints3 = fopen("constraints3","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables3 = fopen("variables3","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs3 = fopen("rhs3","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds3 = fopen("bounds3","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints4 = fopen("constraints4","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables4 = fopen("variables4","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs4 = fopen("rhs4","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds4 = fopen("bounds4","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints5 = fopen("constraints5","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables5 = fopen("variables5","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs5 = fopen("rhs5","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds5 = fopen("bounds5","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints6 = fopen("constraints6","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables6 = fopen("variables6","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs6 = fopen("rhs6","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds6 = fopen("bounds6","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints7 = fopen("constraints7","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables7 = fopen("variables7","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs7 = fopen("rhs7","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds7 = fopen("bounds7","r")) == NULL)
+                {
+                    exit(1);
+                }
+
+                if ((fconstraints8 = fopen("constraints8","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fvariables8 = fopen("variables8","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((frhs8 = fopen("rhs8","r")) == NULL)
+                {
+                    exit(1);
+                }
+                if ((fbounds8 = fopen("bounds8","r")) == NULL)
+                {
+                    exit(1);
+                }
+        */
+        fscanf(fbounds1,"%ld\n", &counter1);
+        /*
+        fscanf(fbounds2,"%ld\n", &counter2);
+        fscanf(fbounds3,"%ld\n", &counter3);
+        fscanf(fbounds4,"%ld\n", &counter4);
+        fscanf(fbounds5,"%ld\n", &counter5);
+        fscanf(fbounds6,"%ld\n", &counter6);
+        fscanf(fbounds7,"%ld\n", &counter7);
+        fscanf(fbounds8,"%ld\n", &counter8);
+        */
+        while (fscanf(fconstraints1, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii);
+        }
+        counter = counter1;
+
+        /*
+        while (fscanf(fconstraints2, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2;
+
+        while (fscanf(fconstraints3, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2 + counter3;
+
+        while (fscanf(fconstraints4, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2 + counter3 + counter4;
+
+        while (fscanf(fconstraints5, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2 + counter3 + counter4 + counter5;
+
+        while (fscanf(fconstraints6, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6;
+
+        while (fscanf(fconstraints7, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+        counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6 + counter7;
+
+        while (fscanf(fconstraints8, "%s %ld\n", str, &ii) != EOF)
+        {
+            fprintf(fconstraints, " %s  %08ld\n", str, ii+counter);
+        }
+
+        */
+
+        while (fscanf(fvariables1, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+        {
+            fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii, jj);
+        }
+        counter = counter1;
+        /*
+                while (fscanf(fvariables2, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2;
+
+                while (fscanf(fvariables3, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3;
+
+                while (fscanf(fvariables4, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4;
+
+                while (fscanf(fvariables5, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5;
+
+                while (fscanf(fvariables6, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6;
+
+                while (fscanf(fvariables7, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6 + counter7;
+
+                while (fscanf(fvariables8, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(fvariables, "    %-8s  %08ld %ld\n",str, ii+counter, jj);
+                }
+
+        */
+
+        while ( fscanf(frhs1, "%s %s %ld %ld\n", dummy_str, str, &ii, &jj) != EOF)
+        {
+            fprintf(frhs, "    RHS1      %08ld %ld\n", ii, jj);
+        }
+        counter = counter1;
+        /*
+                while ( fscanf(frhs2, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n",  ii+counter, jj);
+                }
+                counter = counter1 + counter2;
+
+                while ( fscanf(frhs3, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n" , ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3;
+
+                while ( fscanf(frhs4, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n", ii+counter, jj);
+                }
+
+                counter = counter1 + counter2 + counter3 + counter4 ;
+
+                while ( fscanf(frhs5, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n", ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5  ;
+
+                while ( fscanf(frhs6, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n",  ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6  ;
+
+                while ( fscanf(frhs7, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n" , ii+counter, jj);
+                }
+                counter = counter1 + counter2 + counter3 + counter4 + counter5 + counter6 + counter7;
+
+                while ( fscanf(frhs8, "%s %ld %ld\n", str, &ii, &jj) != EOF)
+                {
+                    fprintf(frhs, "    RHS1      %08ld %ld\n", ii+counter, jj);
+                }
+        */
+        fprintf(fconstraints,"COLUMNS\n");
+        fprintf(fconstraints,"    INT1      'MARKER'                 'INTORG'\n");
+
+
+        fprintf(fbounds,"BOUNDS\n");
+        /* All variables are binarry
+        for (jj = 0; jj < Total_number_of_vars; jj ++)
+        {
+            fprintf(fbounds," UI BOUND     ");
+            fprintf(fbounds,"%08ld       ",jj);//var+jj*40);
+            fprintf(fbounds,"1\n");
+        }
+        */
+
+        //NICT 20210831
+        for (jj = 0; jj < Start_number_of_Delta_ija; jj ++)
+        {
+            fprintf(fbounds," UI BOUND     ");
+            fprintf(fbounds,"%08ld       ",jj);//var+jj*40);
+            fprintf(fbounds,"1\n");
+        }
+
+        //for Delta_ij, since upperbound is unbounded, no bounds expression here.
+
+        //For o_ij <= Oij
+        printf("Start_number_of_Oija %ld \n",Start_number_of_Oija);
+
+        for (jj = Start_number_of_Oija; jj < Start_number_of_Oija + Total_number_of_Oija; jj ++)
+        {
+            fprintf(fbounds," UI BOUND     ");
+            fprintf(fbounds,"%08ld       ",jj);//var+jj*40);
+            fprintf(fbounds,"1\n");
+            /*
+            fprintf(fbounds," UI BOUND     ");
+            fprintf(fbounds,"%08ld       ",jj);//var+jj*40);
+            sscanf((var+jj*40),"Oi%02dj%02da%02d", &i, &j, &a);
+            fprintf(fbounds,"%ld\n",  (long int) is_Required_to_Sell_Lightpath_to_Customer_Carrier[Voe[i]][Voe[j]][a]);
+            */
+        }
+
+        for (jj = 0; jj < Total_number_of_vars; jj ++)
+        {
+            fprintf(fbounds," LI BOUND     ");
+            fprintf(fbounds,"%08ld       ",jj);//var+jj*40);
+            fprintf(fbounds,"0\n");
+        }
+
+        fprintf(fbounds,"ENDATA\n");
+
+        fclose(fconstraints);
+        fclose(fvariables);
+        fclose(frhs);
+        fclose(fbounds);
+
+
+        system("rm ee.mps");
+        system("cat variables |sort > variables2");
+        system("cat constraints >> ee.mps");
+        system("cat variables2 >> ee.mps");
+        system("cat rhs >> ee.mps");
+        system("cat bounds >> ee.mps");
+        system("rm constraint*");
+        system("rm variables*");
+        system("rm rhs*");
+        system("rm bounds*");
+
+        if ((argc >= 2)
+                &&
+                (
+                    strcmp(argv[1], "-s") == 0 // include modelling and solving
+                )
+           )
+        {
+            system("./symphony5.5.1 -f me -F ee.mps > results");
+        }
+    }
+
+    printf("***********\n");
+    printf("Total_number_of_constraint =  %ld \n", counter1 + counter2 + counter3 + counter4 + counter5 + counter6 + counter7+ counter8);
+    printf("Total_number_of_var        =  %ld \n", Total_number_of_vars);
+    printf("Total_number_of_Psdzcwijmn  =  %ld \n", Total_number_of_Psdzcwijmn);
+    printf("Total_number_of_Mijmn  =  %ld \n", Total_number_of_Mijmn);
+
+    printf("Total_number_of_Rsdcwija   =  %ld \n", Total_number_of_Rsdcwija);
+    printf("Total_number_of_Ysdcwij    =  %ld \n", Total_number_of_Ysdcwij);
+    printf("Total_number_of_X_asdij      =  %ld \n", Total_number_of_X_asdij);
+    printf("Total_number_of_Asda       =  %ld \n", Total_number_of_Asda);
+    printf("Total_number_of_Bmn        =  %ld \n", Total_number_of_Bmn);
+    printf("Total_number_of_Casd        =  %ld \n", Total_number_of_Casd);
+    printf("Total_number_of_Delta_ija  =  %ld \n", Total_number_of_Delta_ija);
+    printf("Total_number_of_Ub         =  %ld \n", Total_number_of_Ub);
+    printf("Total_number_of_Vzwij       =  %ld \n", Total_number_of_Vzwij);
+    printf("Total_number_of_Oija       =  %ld \n", Total_number_of_Oija);
+
+
+
+
+    if (argc >= 2 && strcmp(argv[1], "-m") == 0)
+    {
+        exit(1);
+
+
+    }
+
+
+    system("sh checkresults.sh > vars.txt");
+
+    if ((fbounds = fopen("vars.txt","r")) == NULL)
+    {
+        exit(1);
+    }
+
+    if ((frhs = fopen("./nosolution.txt","r")) != NULL)
+    {
+        printf("No solution\n");
+        //fclose(frhs);
+        exit(1);
+    }
+
+    float aa;
+
+    if ((frequest = fopen("1requests","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((ftransponder1 = fopen("1transponder1","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((ftransponder2 = fopen("1transponder2","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((fwavelength = fopen("1wavelength","w")) == NULL)
+    {
+        exit(1);
+    }
+    if ((flink = fopen("1link","w")) == NULL)
+    {
+        exit(1);
+    }
+
+
+    while ( fscanf(fbounds, "%ld %f\n", &ii, &aa) != EOF)
+    {
+
+
+        if (
+            ii >= Start_number_of_Bmn// Total_number_of_vars - Total_number_of_requests - Total_number_of_Asda - Total_number_of_Rsdcwija - Total_number_of_Bmn
+            &&
+            ii <  Start_number_of_Bmn + Total_number_of_Bmn //Total_number_of_vars - Total_number_of_requests - Total_number_of_Asda - Total_number_of_Rsdcwija
+        )
+        {
+            printf("%08ld %s\n", ii, (var + ii * 40));
+
+            // check the transponder
+            strcpy(str, (var + ii * 40));
+
+            sscanf(str, "Bm%02dn%02d",&m, &n);
+
+            for (i = 0; i < Total_number_of_trial; i ++)
+            {
+                if (m == test_m[i] && n == test_n[i])
+                {
+                    cost += test_weight[i];
+                    if ( n - m == N/2)
+                        repair_interconnection_link ++;
+                    else
+                        repair_normal_link ++;
+
+                }
+            }
+
+            for (w = 0; w < W; w++)
+            {
+
+                U_w_m_n[w][m][n] = 0;
+                U_w_m_n[w][n][m] = 0;
+
+            }
+            Link[m][n] = 0;
+            Link[n][m] = 0;
+
+
+        }
+    }//while
+
+    fclose(fbounds);
+
+    printf("SOLUTION: COST %6d NORMAL_LINK %6d INTERCONNECTION %6d\n", cost, repair_normal_link, repair_interconnection_link);
+
+
+    if ((fbounds = fopen("vars.txt","r")) == NULL)
+    {
+        printf("Not opened vars.txt\n");
+        exit(1);
+    }
+    counter = 0;
+    while ( fscanf(fbounds, "%ld %f\n", &ii, &aa) != EOF)
+    {
+
+        printf("SOLUTION: %08ld %s\n", ii, (var + ii * 40));
+
+        if (
+            ii >= Start_number_of_Psdzcwijmn
+            &&
+            ii < Start_number_of_Psdzcwijmn + Total_number_of_Psdzcwijmn )
+        {
+            // check the results of Psdzcwijmn
+            // check the wavelength a/v
+            strcpy(str, (var + ii * 40));
+
+            sscanf(str, "Ps%02dd%02d-z%02dc%02dw%02d-i%02dj%02d-m%02dn%02d",&s, &d, &z, &c, &w, &i, &j, &m, &n);
+
+            if ( U_w_m_n[w][m][n] == 0 )
+            {
+                U_w_m_n[w][m][n] = 1;
+                U_w_m_n[w][n][m] = 1;
+            }
+
+        } else if (
+            ii >= Start_number_of_X_asdij
+            &&
+            ii < Start_number_of_X_asdij + Total_number_of_X_asdij
+        )
+        {
+            // check the transponder
+            strcpy(str, (var + ii * 40));
+            sscanf(str, "Xa%02ds%02dd%02d-i%02dj%02d",&a, &s, &d, &i, &j);
+            //if ( i < j)
+            {
+                if (F_i[i] > 0)
+                    F_i[i] --;
+                if (F_i[j] > 0)
+                    F_i[j] --;
+
+
+                for (c = 0 ; c < C; c++)
+                {
+                    for (w = 0; w < W; w++)
+                    {
+
+                        if ( F_c_w_i[c][w][i] >0)
+                        {
+                            F_c_w_i[c][w][i] --;
+                        }
+                        if ( F_c_w_i[c][w][j] >0)
+                        {
+                            F_c_w_i[c][w][j] --;
+                        }
+
+                    }
+                }
+            }
+        } else if (
+            ii >=  Start_number_of_Casd
+            &&
+            ii <  Start_number_of_Casd + Total_number_of_Casd
+        )
+        {
+            //label the solved node_pair
+            node_pair_id = ii - Start_number_of_Casd;
+            source[node_pair_id] = -1;
+            dest[node_pair_id] = -1;
+            counter ++;
+        }
+    }//while
+
+    fprintf(frequest, "N%d Ne%d C%d W%d R%ld\n",N, Ne, C, lambda_end, Total_number_of_requests-counter);
+    for (node_pair_id = 0; node_pair_id < Total_number_of_requests; node_pair_id ++)
+    {
+        if ( source[node_pair_id] != -1 && dest[node_pair_id] != -1)
+        {
+            fprintf(frequest, "%2d %2d\n",source[node_pair_id], dest[node_pair_id]);
+        }
+    }
+
+    fprintf(ftransponder1, "N%d Ne%d C%d W%d R%ld\n",N, Ne, C, lambda_end, Total_number_of_requests-counter);
+    for (i = 0; i < N; i++)
+    {
+        fprintf(ftransponder1, "%2d %2d\n",i, F_i[i]);
+    }
+
+    fprintf(ftransponder2, "N%d Ne%d C%d W%d R%ld\n",N, Ne, C, lambda_end, Total_number_of_requests-counter);
+    for (c = 0; c < C; c++)
+    {
+        for (w = 0; w < W; w++)
+        {
+            for (i = 0; i < N; i++)
+            {
+                fprintf(ftransponder2, "%2d ",F_c_w_i[c][w][i]);
+            }
+            fprintf(ftransponder2, "\n");
+        }
+    }
+
+    fprintf(fwavelength, "N%d Ne%d C%d W%d R%ld\n",N, Ne, C, lambda_end, Total_number_of_requests-counter);
+    for (w = 0; w < W; w++)
+    {
+        for (m = 0; m < N; m++)
+        {
+            for (n = 0; n < N; n++)
+            {
+                fprintf(fwavelength, "%2d ", U_w_m_n[w][m][n]);
+            }
+            fprintf(fwavelength, "\n");
+        }
+    }
+
+    fprintf(flink, "N%d Ne%d C%d W%d R%ld\n",N, Ne, C, lambda_end, Total_number_of_requests-counter);
+    for (m = 0; m < N; m++)
+    {
+        for (n = 0; n < N; n++)
+        {
+            fprintf(flink, "%2d ", Link[m][n]);
+        }
+        fprintf(flink, "\n");
+    }
+
+
+    fclose(frequest);
+    fclose(ftransponder1);
+    fclose(ftransponder2);
+    fclose(fwavelength);
+    fclose(flink);
+
+
+    fclose(fbounds);
+
+    free(var);
+    if (argc < 2)
+    {
+        free(pVarID_P);
+
+        free(pVarID_M);
+
+        free(pVarID_B);
+        free(pVarID_U);
+        free(pVarID_V);
+        free(pVarID_X);
+        free(pVarID_C);
+        free(pVarID_D);
+        free(pVarID_O);
+
+    }
+    return 0;
+}
+
+
+
+
+

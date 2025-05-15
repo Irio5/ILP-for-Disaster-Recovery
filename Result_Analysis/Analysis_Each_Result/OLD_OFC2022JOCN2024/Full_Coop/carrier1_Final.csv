@@ -1,0 +1,5 @@
+ID,Src_node,Dst_node,Min_Req_BW,Max_Req_BW,Satisfied_Bandwidth,Latency,Result,Lead_Time,Score,Customer_ID
+1,1,2,164661,164661,0,20,0,999,0,2
+2,1,6,162345,162345,0,20,0,999,0,2
+3,5,11,165422,165422,0,20,0,999,0,2
+4,10,11,164253,164253,0,20,0,999,0,2

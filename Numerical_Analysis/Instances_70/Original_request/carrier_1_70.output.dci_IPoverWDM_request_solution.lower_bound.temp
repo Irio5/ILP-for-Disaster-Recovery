@@ -1,0 +1,12 @@
+Path#=11 Customer_Carrier#=7
+path-id:0 s=5 d=7 customer/carrier_customer_id=3 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=1 Score=100 Lead_Time=0
+path-id:1 s=5 d=9 customer/carrier_customer_id=3 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=2
+path-id:2 s=7 d=9 customer/carrier_customer_id=3 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=2
+path-id:3 s=7 d=10 customer/carrier_customer_id=3 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=3
+path-id:4 s=9 d=10 customer/carrier_customer_id=3 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=3
+path-id:5 s=0 d=1 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=1 Score=100 Lead_Time=0
+path-id:6 s=0 d=4 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=1 Score=100 Lead_Time=0
+path-id:7 s=1 d=2 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=1
+path-id:8 s=1 d=4 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=1 Score=100 Lead_Time=0
+path-id:9 s=2 d=4 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=1
+path-id:10 s=2 d=7 customer/carrier_customer_id=4 weight=11 is_esen=1 Priority=1 Min_Bandwidth=100000 Max_Bandwidth=100000 Satisfied_Bandwidth=100000 Latency=20 Result=2 Score=100 Lead_Time=1

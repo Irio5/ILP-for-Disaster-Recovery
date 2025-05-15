@@ -1,0 +1,194 @@
+
+Welcome to IBM(R) ILOG(R) CPLEX(R) Interactive Optimizer 22.1.1.0
+  with Simplex, Mixed Integer & Barrier Optimizers
+5725-A06 5725-A29 5724-Y48 5724-Y49 5724-Y54 5724-Y55 5655-Y21
+Copyright IBM Corp. 1988, 2022.  All Rights Reserved.
+
+Type 'help' for a list of available commands.
+Type 'help' followed by a command name for more
+information on commands.
+
+CPLEX> Selected objective sense:  MINIMIZE
+Selected objective  name:  00000000
+Selected RHS        name:  RHS1
+Selected bound      name:  BOUND
+Problem 'ee.mps' read.
+Read time = 0.02 sec. (3.14 ticks)
+CPLEX> New value for time limit in seconds: 7200
+CPLEX> New value for parallel optimization mode: -1
+CPLEX> New value for default parallel thread count: 40
+CPLEX> New value for mixed integer optimality gap tolerance: 1e-13
+CPLEX> Version identifier: 22.1.1.0 | 2022-11-28 | 9160aff4d
+CPXPARAM_Threads                                 40
+CPXPARAM_Parallel                                -1
+CPXPARAM_TimeLimit                               7200
+CPXPARAM_MIP_Tolerances_MIPGap                   1e-13
+Found incumbent of value 0.000000 after 0.00 sec. (0.31 ticks)
+Tried aggregator 2 times.
+MIP Presolve eliminated 178 rows and 2745 columns.
+MIP Presolve modified 5862 coefficients.
+Aggregator did 713 substitutions.
+Reduced MIP has 3624 rows, 7739 columns, and 28645 nonzeros.
+Reduced MIP has 7739 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.07 sec. (68.58 ticks)
+Probing time = 0.03 sec. (5.90 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+Reduced MIP has 3624 rows, 7739 columns, and 28645 nonzeros.
+Reduced MIP has 7739 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.02 sec. (21.85 ticks)
+Probing time = 0.02 sec. (5.66 ticks)
+Clique table members: 18552.
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: opportunistic, using up to 40 threads.
+Root relaxation solution time = 0.10 sec. (77.01 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                            0.0000  -1.31000e+13              --- 
+*     0+    0                      -4.40000e+12  -1.31000e+13           197.73%
+*     0+    0                      -5.50000e+12  -1.31000e+13           138.18%
+      0     0  -1.30900e+13    44  -5.50000e+12  -1.30900e+13     1785  138.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0     0  -1.30900e+13   111  -1.30900e+13      Cuts: 48     2523    0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0     0  -1.30900e+13   107  -1.30900e+13      Cuts: 74     2756    0.00%
+      0     0  -1.30900e+13   146  -1.30900e+13      Cuts: 69     2787    0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0    13        cutoff        -1.30900e+13  -1.30900e+13     4219    0.00%
+Elapsed time = 2.00 sec. (1014.17 ticks, tree = 0.02 MB, solutions = 8)
+    512    97        cutoff        -1.30900e+13  -1.30900e+13    21264    0.00%
+   1438   232  -1.30900e+13    59  -1.30900e+13  -1.30900e+13    55891    0.00%
+   2595   289        cutoff        -1.30900e+13  -1.30900e+13    68764    0.00%
+   3704   998  -1.30900e+13   131  -1.30900e+13  -1.30900e+13   181196    0.00%
+   4593  1052        cutoff        -1.30900e+13  -1.30900e+13   186455    0.00%
+   5122  1155  -1.30900e+13    60  -1.30900e+13  -1.30900e+13   199318    0.00%
+   5789  2137        cutoff        -1.30900e+13  -1.30900e+13   352379    0.00%
+   6774  2156  -1.30900e+13    70  -1.30900e+13  -1.30900e+13   359131    0.00%
+   7913  2475  -1.30900e+13    85  -1.30900e+13  -1.30900e+13   470738    0.00%
+  11343  2490  -1.30900e+13    17  -1.30900e+13  -1.30900e+13   483405    0.00%
+Elapsed time = 7.10 sec. (4116.77 ticks, tree = 41.59 MB, solutions = 8)
+  12665  2631  -1.30900e+13    49  -1.30900e+13  -1.30900e+13   618690    0.00%
+
+Performing restart 1
+
+Repeating presolve.
+Tried aggregator 4 times.
+MIP Presolve eliminated 865 rows and 2388 columns.
+MIP Presolve added 66 rows and 0 columns.
+MIP Presolve modified 1869 coefficients.
+Aggregator did 408 substitutions.
+Reduced MIP has 2371 rows, 4903 columns, and 17624 nonzeros.
+Reduced MIP has 4903 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.11 sec. (112.47 ticks)
+Tried aggregator 2 times.
+MIP Presolve eliminated 33 rows and 73 columns.
+MIP Presolve modified 8 coefficients.
+Aggregator did 21 substitutions.
+Reduced MIP has 2317 rows, 4800 columns, and 17277 nonzeros.
+Reduced MIP has 4800 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.05 sec. (41.02 ticks)
+Tried aggregator 1 time.
+MIP Presolve eliminated 2 rows and 2 columns.
+Reduced MIP has 2315 rows, 4798 columns, and 17271 nonzeros.
+Reduced MIP has 4798 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.03 sec. (19.15 ticks)
+Represolve time = 0.34 sec. (241.25 ticks)
+  12675     0  -1.30900e+13   250  -1.30900e+13      Cuts: 24   710236    0.00%
+  12675     0  -1.30900e+13   154  -1.30900e+13      Cuts: 36   710462    0.00%
+  12675     0  -1.30900e+13   217  -1.30900e+13      Cuts: 30   710685    0.00%
+  12675     0  -1.30900e+13   243  -1.30900e+13      Cuts: 29   710896    0.00%
+  12675     0  -1.30900e+13   273  -1.30900e+13      Cuts: 40   711148    0.00%
+  12675     0  -1.30900e+13   257  -1.30900e+13      Cuts: 35   711262    0.00%
+  12675     0  -1.30900e+13   314  -1.30900e+13      Cuts: 30   711332    0.00%
+  12675     0  -1.30900e+13   368  -1.30900e+13      Cuts: 29   711464    0.00%
+  12675     0  -1.30900e+13   325  -1.30900e+13      Cuts: 23   711551    0.00%
+  12675     0  -1.30900e+13   342  -1.30900e+13      Cuts: 57   711674    0.00%
+  12675     0  -1.30900e+13   332  -1.30900e+13      Cuts: 35   711735    0.00%
+  12675     0  -1.30900e+13   355  -1.30900e+13      Cuts: 32   711850    0.00%
+  12675     0  -1.30900e+13   374  -1.30900e+13      Cuts: 39   711946    0.00%
+
+Repeating presolve.
+Tried aggregator 2 times.
+MIP Presolve eliminated 1653 rows and 3467 columns.
+MIP Presolve modified 192 coefficients.
+Aggregator did 170 substitutions.
+Reduced MIP has 476 rows, 1141 columns, and 3794 nonzeros.
+Reduced MIP has 1141 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.02 sec. (11.87 ticks)
+Tried aggregator 1 time.
+MIP Presolve eliminated 4 rows and 5 columns.
+Reduced MIP has 472 rows, 1136 columns, and 3778 nonzeros.
+Reduced MIP has 1136 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (3.84 ticks)
+Represolve time = 0.06 sec. (48.02 ticks)
+  12675     0  -1.30900e+13   257  -1.30900e+13      Cuts: 55   713432    0.00%
+  12675     0  -1.30900e+13   300  -1.30900e+13      Cuts: 56   713542    0.00%
+  12675     0  -1.30900e+13   301  -1.30900e+13      Cuts: 39   713644    0.00%
+  12675     0  -1.30900e+13   294  -1.30900e+13      Cuts: 70   713766    0.00%
+  12675     0  -1.30900e+13   228  -1.30900e+13      Cuts: 77   713838    0.00%
+  12675     0  -1.30900e+13   284  -1.30900e+13      Cuts: 36   713920    0.00%
+
+Repeating presolve.
+Tried aggregator 2 times.
+MIP Presolve eliminated 77 rows and 319 columns.
+MIP Presolve modified 112 coefficients.
+Aggregator did 31 substitutions.
+Reduced MIP has 360 rows, 777 columns, and 2555 nonzeros.
+Reduced MIP has 777 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.01 sec. (4.52 ticks)
+Tried aggregator 1 time.
+MIP Presolve eliminated 14 rows and 12 columns.
+Reduced MIP has 346 rows, 763 columns, and 2486 nonzeros.
+Reduced MIP has 763 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (2.15 ticks)
+Tried aggregator 1 time.
+Reduced MIP has 346 rows, 763 columns, and 2486 nonzeros.
+Reduced MIP has 763 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (1.73 ticks)
+Represolve time = 0.05 sec. (36.35 ticks)
+  12675     0  -1.30900e+13   274  -1.30900e+13      Cuts: 38   714951    0.00%
+  12675     0  -1.30900e+13   277  -1.30900e+13      Cuts: 26   715009    0.00%
+  12675     0  -1.30900e+13   310  -1.30900e+13      Cuts: 42   715058    0.00%
+  12675     0  -1.30900e+13   302  -1.30900e+13      Cuts: 53   715134    0.00%
+  12675     0  -1.30900e+13   314  -1.30900e+13      Cuts: 22   715178    0.00%
+  12675     0  -1.30900e+13   285  -1.30900e+13      Cuts: 36   715264    0.00%
+  12675     0  -1.30900e+13   288  -1.30900e+13      Cuts: 19   715332    0.00%
+  12675     0  -1.30900e+13   275  -1.30900e+13      Cuts: 49   715398    0.00%
+  12675     0  -1.30900e+13   295  -1.30900e+13      Cuts: 24   715450    0.00%
+  12675     0  -1.30900e+13   302  -1.30900e+13      Cuts: 23   715503    0.00%
+  12675     0  -1.30900e+13   315  -1.30900e+13      Cuts: 22   715581    0.00%
+  12675     0  -1.30900e+13   279  -1.30900e+13      Cuts: 44   715657    0.00%
+  12675     0  -1.30900e+13   324  -1.30900e+13      Cuts: 33   715735    0.00%
+  12675     0        cutoff        -1.30900e+13  -1.30900e+13   715809    0.00%
+
+GUB cover cuts applied:  1
+Clique cuts applied:  22
+Cover cuts applied:  119
+Implied bound cuts applied:  1
+Flow cuts applied:  3
+Mixed integer rounding cuts applied:  61
+Zero-half cuts applied:  84
+Gomory fractional cuts applied:  2
+
+Root node processing (before b&c):
+  Real time             =    1.22 sec. (1002.23 ticks)
+Parallel b&c, 40 threads:
+  Real time             =    9.18 sec. (7020.15 ticks)
+  Sync time (average)   =    0.26 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =   10.41 sec. (8022.38 ticks)
+
+Solution pool: 8 solutions saved.
+
+MIP - Integer optimal solution:  Objective = -1.3089999591e+13
+Solution time =   10.51 sec.  Iterations = 715809  Nodes = 12675
+Deterministic time = 8022.41 ticks  (763.13 ticks/sec)
+
+CPLEX> Solution 'p9' written to file 'ee.sol'.
+CPLEX> 

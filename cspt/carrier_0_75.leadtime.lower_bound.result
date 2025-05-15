@@ -1,0 +1,73 @@
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+<CPLEXSolution version="1.2">
+ <header
+   problemName="eee.mps"
+   solutionName="p6"
+   solutionIndex="0"
+   objectiveValue="17333332"
+   solutionTypeValue="3"
+   solutionTypeString="primal"
+   solutionStatusValue="127"
+   solutionStatusString="integer feasible solution"
+   solutionMethodString="mip"
+   primalFeasible="0"
+   dualFeasible="0"
+   writeLevel="1"/>
+ <quality
+   epInt="1.0000000000000001e-05"
+   epRHS="9.9999999999999995e-07"
+   maxIntInfeas="0"
+   maxPrimalInfeas="0"
+   maxX="1"
+   maxSlack="0"/>
+ <linearConstraints>
+  <constraint name="00000001" index="0" slack="0"/>
+  <constraint name="00000002" index="1" slack="0"/>
+  <constraint name="00000003" index="2" slack="0"/>
+  <constraint name="00000004" index="3" slack="0"/>
+  <constraint name="00000005" index="4" slack="0"/>
+  <constraint name="00000006" index="5" slack="0"/>
+  <constraint name="00000007" index="6" slack="0"/>
+  <constraint name="00000008" index="7" slack="0"/>
+  <constraint name="00000009" index="8" slack="0"/>
+  <constraint name="00000010" index="9" slack="0"/>
+  <constraint name="00000011" index="10" slack="0"/>
+  <constraint name="00000012" index="11" slack="0"/>
+  <constraint name="00000013" index="12" slack="0"/>
+  <constraint name="00000014" index="13" slack="0"/>
+  <constraint name="00000015" index="14" slack="0"/>
+  <constraint name="00000016" index="15" slack="0"/>
+  <constraint name="00000017" index="16" slack="0"/>
+  <constraint name="00000018" index="17" slack="0"/>
+ </linearConstraints>
+ <variables>
+  <variable name="00000000" index="0" value="1"/>
+  <variable name="00000001" index="1" value="0"/>
+  <variable name="00000002" index="2" value="0"/>
+  <variable name="00000003" index="3" value="0"/>
+  <variable name="00000004" index="4" value="0"/>
+  <variable name="00000005" index="5" value="0"/>
+  <variable name="00000006" index="6" value="0"/>
+  <variable name="00000007" index="7" value="0"/>
+  <variable name="00000008" index="8" value="0"/>
+  <variable name="00000009" index="9" value="1"/>
+  <variable name="00000010" index="10" value="0"/>
+  <variable name="00000011" index="11" value="0"/>
+  <variable name="00000012" index="12" value="0"/>
+  <variable name="00000013" index="13" value="1"/>
+  <variable name="00000014" index="14" value="0"/>
+  <variable name="00000015" index="15" value="0"/>
+  <variable name="00000016" index="16" value="0"/>
+  <variable name="00000017" index="17" value="1"/>
+  <variable name="00000018" index="18" value="0"/>
+  <variable name="00000019" index="19" value="0"/>
+  <variable name="00000020" index="20" value="0"/>
+  <variable name="00000021" index="21" value="1"/>
+  <variable name="00000022" index="22" value="0"/>
+  <variable name="00000023" index="23" value="0"/>
+  <variable name="00000024" index="24" value="0"/>
+ </variables>
+ <objectiveValues>
+  <objective index="0" name="00000000" value="17333332"/>
+ </objectiveValues>
+</CPLEXSolution>

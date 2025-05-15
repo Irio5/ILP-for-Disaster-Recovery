@@ -1,0 +1,94 @@
+
+Welcome to IBM(R) ILOG(R) CPLEX(R) Interactive Optimizer 22.1.1.0
+  with Simplex, Mixed Integer & Barrier Optimizers
+5725-A06 5725-A29 5724-Y48 5724-Y49 5724-Y54 5724-Y55 5655-Y21
+Copyright IBM Corp. 1988, 2022.  All Rights Reserved.
+
+Type 'help' for a list of available commands.
+Type 'help' followed by a command name for more
+information on commands.
+
+CPLEX> Selected objective sense:  MINIMIZE
+Selected objective  name:  00000000
+Selected RHS        name:  RHS1
+Selected bound      name:  BOUND
+Problem 'ee.mps' read.
+Read time = 0.03 sec. (3.14 ticks)
+CPLEX> New value for time limit in seconds: 7200
+CPLEX> New value for parallel optimization mode: -1
+CPLEX> New value for default parallel thread count: 40
+CPLEX> New value for mixed integer optimality gap tolerance: 1e-13
+CPLEX> Version identifier: 22.1.1.0 | 2022-11-28 | 9160aff4d
+CPXPARAM_Threads                                 40
+CPXPARAM_Parallel                                -1
+CPXPARAM_TimeLimit                               7200
+CPXPARAM_MIP_Tolerances_MIPGap                   1e-13
+Found incumbent of value 0.000000 after 0.00 sec. (0.31 ticks)
+Tried aggregator 2 times.
+MIP Presolve eliminated 184 rows and 2745 columns.
+MIP Presolve modified 5862 coefficients.
+Aggregator did 713 substitutions.
+Reduced MIP has 3624 rows, 7744 columns, and 28666 nonzeros.
+Reduced MIP has 7744 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.07 sec. (68.78 ticks)
+Probing time = 0.03 sec. (5.31 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+Reduced MIP has 3624 rows, 7744 columns, and 28666 nonzeros.
+Reduced MIP has 7744 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.02 sec. (21.97 ticks)
+Probing time = 0.02 sec. (5.10 ticks)
+Clique table members: 18557.
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: opportunistic, using up to 40 threads.
+Root relaxation solution time = 0.12 sec. (107.93 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                            0.0000  -1.31000e+13              --- 
+*     0+    0                      -5.50000e+12  -1.31000e+13           138.18%
+*     0+    0                      -7.70000e+12  -1.31000e+13            70.13%
+      0     0  -1.30900e+13    65  -7.70000e+12  -1.30900e+13     2290   70.00%
+*     0+    0                      -1.08900e+13  -1.30900e+13            20.20%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0     0  -1.30900e+13   146  -1.30900e+13      Cuts: 56     2630    0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0     0  -1.30900e+13   170  -1.30900e+13      Cuts: 91     2779    0.00%
+*     0+    0                      -1.30900e+13  -1.30900e+13             0.00%
+      0     2  -1.30900e+13   170  -1.30900e+13  -1.30900e+13     2779    0.00%
+Elapsed time = 2.03 sec. (924.53 ticks, tree = 0.02 MB, solutions = 9)
+    545    31        cutoff        -1.30900e+13  -1.30900e+13    11919    0.00%
+   1788   106        cutoff        -1.30900e+13  -1.30900e+13    36170    0.00%
+   2925   204  -1.30900e+13   146  -1.30900e+13  -1.30900e+13    67913    0.00%
+   3556    16        cutoff        -1.30900e+13  -1.30900e+13   267742    0.00%
+   4008    93  -1.30900e+13    13  -1.30900e+13  -1.30900e+13   229920    0.00%
+   4192    97  -1.30900e+13     9  -1.30900e+13  -1.30900e+13   231107    0.00%
+
+GUB cover cuts applied:  3
+Clique cuts applied:  18
+Cover cuts applied:  618
+Flow cuts applied:  2
+Mixed integer rounding cuts applied:  4
+Zero-half cuts applied:  5
+Lift and project cuts applied:  12
+Gomory fractional cuts applied:  12
+
+Root node processing (before b&c):
+  Real time             =    1.16 sec. (922.41 ticks)
+Parallel b&c, 40 threads:
+  Real time             =    3.08 sec. (1474.09 ticks)
+  Sync time (average)   =    1.15 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    4.25 sec. (2396.50 ticks)
+
+Solution pool: 9 solutions saved.
+
+MIP - Integer optimal solution:  Objective = -1.3089998690e+13
+Solution time =    4.38 sec.  Iterations = 282562  Nodes = 4206
+Deterministic time = 2396.53 ticks  (546.85 ticks/sec)
+
+CPLEX> Solution 'p10' written to file 'ee.sol'.
+CPLEX> 

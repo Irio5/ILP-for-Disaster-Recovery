@@ -1,0 +1,9 @@
+Src_node,Dst_node,Carrier_ID,Users_count,Min_Required_Lightpath_Bandwidth,Max_Required_Lightpath_Bandwidth,Priority_1,Priority_2,Priority_3,Number of lightpaths,Payment,Flat_Payment,Request_Priority,Final_Priority,From_DCP,Path_ID
+0,5,0,1012,52163,65203,0,0,0,1,4,4,2,2,3,0
+4,9,0,2521,147832,164257,0,0,0,2,56,12,1,1,3,1
+9,10,0,2476,128465,160581,0,0,0,2,54,8,2,2,3,2
+0,4,0,979,151077,163846,0,0,0,2,4,4,1,1,3,3
+4,5,0,1010,152454,165567,0,0,0,2,4,4,1,1,3,4
+0,1,1,1059,62097,68996,0,0,0,1,2,2,1,1,3,0
+5,7,1,0,100000,100000,0,0,0,1,2,2,1,1,3,1
+7,10,1,0,100000,100000,0,0,0,1,2,2,1,1,3,2

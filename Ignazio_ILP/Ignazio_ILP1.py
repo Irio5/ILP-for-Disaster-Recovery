@@ -1,0 +1,611 @@
+from docplex.mp.model import Model
+import networkx as nx
+import csv
+import os
+
+
+def load_dcp_sets_from_csv(file_paths):
+    dcp_sets = {}
+    requests = []
+
+    for file_path in file_paths:
+        # Extract DCP and set names from file name, e.g., "DCP1_Set1.csv"
+        base_name = os.path.basename(file_path).replace('.csv', '')
+        dcp_name, set_name = base_name.split('_Requests_')
+        set_name = set_name.lower()
+
+        # Extract DCP number from dcp_name (e.g., "DCP1" -> 1)
+        dcp_number = int(dcp_name.replace("DCP", ""))
+
+        # Read the CSV and convert to tuples
+        with open(file_path, mode='r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data_tuples = []
+            for row in reader:
+                source = int(row['Src_node'])
+                destination = int(row['Dst_node'])
+                priority = int(row['Final_Priority'])
+                max_bw = int(row['Max_Required_Lightpath_Bandwidth'])/1000
+                min_bw = int(row['Min_Required_Lightpath_Bandwidth'])/1000
+                degradation_tolerance = round((max_bw - min_bw) / max_bw, 2)
+                carrier = f"carrier{int(row['Carrier_ID']) + 1}"
+                users_count = int(row['Users_count'])
+
+                # Create request tuple with DCP and group information
+                request_data = (source, destination, priority, max_bw, degradation_tolerance, carrier, users_count)
+                # Add DCP number and group as additional elements
+                request_with_dcp = (request_data, dcp_number, set_name)
+                data_tuples.append(request_with_dcp)
+                requests.append(request_with_dcp)
+
+        # Insert into the dictionary
+        if dcp_name not in dcp_sets:
+            dcp_sets[dcp_name] = {}
+        dcp_sets[dcp_name][set_name] = data_tuples
+
+    return dcp_sets, requests
+
+#Subhadeep CHECK input file folder
+input_dcp = (
+    'DCP1_Requests_1.csv',
+    'DCP1_Requests_2.csv',
+    'DCP2_Requests_1.csv',
+    'DCP2_Requests_2.csv'
+)
+dcp_groups, requests = load_dcp_sets_from_csv(input_dcp)
+
+# Ensure no two requests are identical; if found, increase the second's bandwidth by 5
+seen_requests = set()
+for idx, req in enumerate(requests):
+    # Use all fields except bandwidth (index 3) for comparison
+    request_data = req[0]  # Get the actual request data
+    req_key = (request_data[0], request_data[1], request_data[2], request_data[4], request_data[5])
+    if req_key in seen_requests:
+        # Duplicate found, increase bandwidth by 5
+        request_data = list(request_data)
+        request_data[3] -= 5
+        requests[idx] = (tuple(request_data), req[1], req[2])  # Reconstruct the request with DCP info
+    else:
+        seen_requests.add(req_key)
+
+
+def load_carrier_from_csv(carrier_0_path, carrier_1_path):
+    def read_csv(filepath):
+        with open(filepath, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            return [row for row in reader]
+
+    def extract_data(carrier_data, carrier_id):
+        nodes = set()
+        edges = []
+        link_status = {}
+        capacities = {}
+        prices = {}
+        normal_prices = {}
+
+        for row in carrier_data:
+            src = int(row['Src_node'])
+            dst = int(row['Dst_node'])
+            status = int(row['Flag'])
+
+            edge = (src, dst)
+            nodes.update([src, dst])
+            edges.append(edge)
+            link_status[edge] = int(not status)  # invert link status
+            capacities[edge] = 400
+            #Set price based on flag value
+            price = 52  if status == 0  else 2
+            prices[edge] = price
+            prices[(dst, src)] = price
+            normal_prices[edge] = 2
+            normal_prices[(dst, src)] = 2
+        return sorted(nodes), edges, link_status, capacities, prices, normal_prices
+
+    # Read the CSV files
+    carrier_0_data = read_csv(carrier_0_path)
+    carrier_1_data = read_csv(carrier_1_path)
+
+    # Extract structured data with carrier filtering
+    nodes_A, edges_A, link_status_A, capacities_A, prices_A, normal_prices_A = extract_data(carrier_0_data, carrier_id=0)
+    nodes_B, edges_B, link_status_B, capacities_B, prices_B, normal_prices_B = extract_data(carrier_1_data, carrier_id=1)
+
+    return nodes_A,edges_A,link_status_A,capacities_A,prices_A,normal_prices_A, nodes_B,edges_B,link_status_B,capacities_B,prices_B, normal_prices_B
+    
+#Subhadeep CHECK input file folder
+nodes_A,edges_A,link_status_A,capacities_A,prices_A, normal_prices_A, nodes_B,edges_B,link_status_B,capacities_B,prices_B, normal_prices_B = load_carrier_from_csv(
+#    "/home/dellirio/Scaricati/Ignazio_ECOC_2025_0408/Price_generation/Carrier_0_links.csv",
+#    "/home/dellirio/Scaricati/Ignazio_ECOC_2025_0408/Price_generation/Carrier_1_links.csv"
+    "Carrier_0_links.csv",
+    "Carrier_1_links.csv"
+)
+
+
+
+time_slots = range(20)
+
+# Define the two carriers
+carriers = ['carrier1', 'carrier2']
+
+    
+
+
+
+
+
+
+def create_ilp_model(nodes_A, nodes_B, edges_A, edges_B, requests, capacities_A, 
+                     capacities_B, prices_A, prices_B, normal_prices_A, normal_prices_B,
+                     link_status_A, link_status_B, time_slots, carriers, 
+                     weight1=1000000, weight2=0.01, weight3=100, weight4=1000, weight5=0.001):
+    model = Model(name='ILP')
+
+    carriers = ['carrier1', 'carrier2']
+    nodes = {'carrier1': nodes_A, 'carrier2': nodes_B}
+    edges = {'carrier1': edges_A, 'carrier2': edges_B}
+    carrier_capacities = {'carrier1': capacities_A, 'carrier2': capacities_B}
+    carrier_prices = {'carrier1': prices_A, 'carrier2': prices_B}
+    carrier_normal_prices = {'carrier1': normal_prices_A, 'carrier2': normal_prices_B}
+    carrier_link_status = {'carrier1': link_status_A, 'carrier2': link_status_B}
+    
+    # Create a unified set of bidirectional edges for each carrier
+    bidirectional_edges = {a: set() for a in carriers}
+    for a in carriers:
+        for u, v in edges[a]:
+            bidirectional_edges[a].add((u, v))
+            bidirectional_edges[a].add((v, u))
+
+    # Convert to a dictionary with capacities for each carrier
+    edge_capacities = {a: {} for a in carriers}
+    for a in carriers:
+        for u, v in bidirectional_edges[a]:
+            edge_capacities[a][(u, v)] = carrier_capacities[a].get((u, v), carrier_capacities[a].get((v, u), 0))
+           
+    # Prices over bidirectional edges for each carrier
+    edge_prices = {a: {} for a in carriers}
+    edge_normal_prices = {a: {} for a in carriers}
+    for a in carriers:
+        for u, v in bidirectional_edges[a]:
+            edge_prices[a][(u, v)] = carrier_prices[a].get((u, v), carrier_prices[a].get((v, u), 0))
+            edge_prices[a][(v, u)] = edge_prices[a][(u, v)]
+            edge_normal_prices[a][(u, v)] = carrier_normal_prices[a].get((u, v), carrier_normal_prices[a].get((v, u), 0))
+            edge_normal_prices[a][(v, u)] = edge_normal_prices[a][(u, v)]
+
+    # Link status over bidirectional edges for each carrier
+    link_status = {a: {} for a in carriers}
+    for a in carriers:
+        for u, v in bidirectional_edges[a]:
+            link_status[a][(u, v)] = carrier_link_status[a].get((u, v), carrier_link_status[a].get((v, u), 0))
+            link_status[a][(v, u)] = link_status[a][(u, v)]
+
+    # Binary variables: if a request is served
+    # Using request_data tuple, DCP number, and group for unique identification
+    F = {σ: model.binary_var(name=f"F_{σ[0]}_{σ[1]}_{σ[2]}") for σ in requests}
+
+    # Binary routing variables with carrier dimension
+    x = {(e, σ, a): model.binary_var(name=f"x_{e[0]}_{e[1]}_{σ[0]}_{σ[1]}_{σ[2]}_{a}") 
+         for a in carriers 
+         for e in bidirectional_edges[a] 
+         for σ in requests}
+
+    # Binary variables for each DCP's topology
+    G = {dcp: {g: model.binary_var(name=f"G_{dcp}_{g}") for g in dcp_groups[dcp]} for dcp in dcp_groups}
+
+    # Group fulfillment variables
+    G_fulfilled = {dcp: {g: model.continuous_var(lb=0, ub=1, name=f"G_fulfilled_{dcp}_{g}") 
+                        for g in dcp_groups[dcp]} for dcp in dcp_groups}
+
+    # Binary recovery schedule for links
+    Q = {(i, j, τ, a): model.binary_var(name=f"Q_{i}_{j}_{τ}_{a}") 
+         for a in carriers for (i, j) in bidirectional_edges[a] for τ in time_slots}
+
+    # Bandwidth for request σ integer
+    B = {σ: model.integer_var(lb=0, name=f"B_{σ[0]}_{σ[1]}_{σ[2]}") for σ in requests}
+
+    # Bandwidth on each link
+    Y = {(e, σ, a): model.continuous_var(lb=0, name=f"Y_{e[0]}_{e[1]}_{σ[0]}_{σ[1]}_{σ[2]}_{a}") 
+         for a in carriers for e in bidirectional_edges[a] for σ in requests}
+
+    # Flow constraints
+    for σ in requests:
+        request_data = σ[0]  # Get the actual request data
+        source, destination, priority, bandwidth, tolerance, carrier_id, users_count = request_data
+        for i in nodes[carrier_id]:
+            incoming_flow = model.sum(x[(j, i), σ, carrier_id] 
+                                   for j in nodes[carrier_id] if (j, i) in bidirectional_edges[carrier_id])
+            outgoing_flow = model.sum(x[(i, j), σ, carrier_id] 
+                                    for j in nodes[carrier_id] if (i, j) in bidirectional_edges[carrier_id])
+            if i == source:
+                model.add_constraint(outgoing_flow - incoming_flow == F[σ])
+            elif i == destination:
+                model.add_constraint(incoming_flow - outgoing_flow == F[σ])
+            else:
+                model.add_constraint(incoming_flow - outgoing_flow == 0)
+
+    # Ensure that if F[σ] is 0, all corresponding x variables are also 0
+    for σ in requests:
+        request_data = σ[0]
+        carrier_id = request_data[5]  # Get carrier from request data
+        for e in bidirectional_edges[carrier_id]:
+            model.add_constraint(x[e, σ, carrier_id] <= F[σ])
+
+    # Only one topology per DCP is chosen
+    for dcp in dcp_groups:
+        model.add_constraint(model.sum(G[dcp][g] for g in dcp_groups[dcp]) == 1)
+    
+    # Group fulfillment constraints
+    for dcp in dcp_groups:
+        dcp_num = int(dcp.replace("DCP", ""))
+        for g in dcp_groups[dcp]:
+            group_requests = [σ for σ in requests if σ[1] == dcp_num and σ[2] == g]
+            if group_requests:
+                model.add_constraint(G_fulfilled[dcp][g] == 
+                                   model.sum(F[σ] for σ in group_requests) / len(group_requests))
+                model.add_constraint(G_fulfilled[dcp][g] <= G[dcp][g])
+    
+    # Request-group relationship constraints
+    for σ in requests:
+        dcp = f"DCP{σ[1]}"
+        group = σ[2]
+        model.add_constraint(F[σ] <= G[dcp][group])
+
+    # Bandwidth degradation tolerance constraints
+    for σ in requests:
+        request_data = σ[0]
+        max_bw = request_data[3]  # bandwidth
+        tolerance = request_data[4]  # degradation_tolerance
+        min_bw = max_bw * (1 - tolerance)
+        model.add_constraint(B[σ] >= min_bw * F[σ])
+        model.add_constraint(B[σ] <= max_bw * F[σ])
+    
+    # Link Bandwidth assignment constraint
+    M = 1e10  # A large number     
+    for σ in requests:
+        request_data = σ[0]
+        carrier_id = request_data[5]
+        for e in bidirectional_edges[carrier_id]:
+            model.add_constraint(Y[e, σ, carrier_id] >= B[σ] - (1 - x[e, σ, carrier_id]) * M)
+            model.add_constraint(Y[e, σ, carrier_id] <= B[σ]) 
+            model.add_constraint(Y[e, σ, carrier_id] <= x[e, σ, carrier_id] * M) 
+    
+    # Capacity constraints 
+    for a in carriers:
+        for u, v in edges[a]: 
+            model.add_constraint(
+                model.sum(Y[(e, σ, a)] for e in [(u, v), (v, u)] 
+                         for σ in requests if σ[0][5] == a) <= edge_capacities[a][(u, v)])
+    
+    # Recovery schedule constraints
+    for τ in time_slots:
+        for a in carriers:
+            model.add_constraint(model.sum(Q[i, j, τ, a] for (i, j) in edges[a]) <= 1)
+    
+    # Single recovery per link constraints
+    for a in carriers:
+        for (i, j) in bidirectional_edges[a]:
+            model.add_constraint(model.sum(Q[i, j, τ, a] for τ in time_slots) <= 1)
+            model.add_constraint(model.sum(Q[j, i, τ, a] for τ in time_slots) <= 1)
+    
+    # Bidirectional repair synchronization
+    for a in carriers:
+        for (i, j) in bidirectional_edges[a]:
+            for τ in time_slots:
+                model.add_constraint(Q[i, j, τ, a] == Q[j, i, τ, a])
+    
+    # Link status and recovery constraints
+    for a in carriers:
+        for (i, j) in bidirectional_edges[a]:
+            for σ in requests:
+                if link_status[a][(i, j)] > 0.5:
+                    model.add_constraint(x[(i, j), σ, a] <= model.sum(Q[i, j, τ, a] for τ in time_slots))
+
+    # First-time link usage variables and constraints
+    first_use = {(i, j, a): model.binary_var(name=f"first_use_{i}_{j}_{a}") 
+                 for a in carriers for (i, j) in bidirectional_edges[a]}
+
+    for a in carriers:
+        for (i, j) in bidirectional_edges[a]:
+            model.add_constraint(first_use[i, j, a] <= 
+                               model.sum(x[(i, j), σ, a] for σ in requests if σ[0][5] == a))
+            model.add_constraint(model.sum(x[(i, j), σ, a] for σ in requests if σ[0][5] == a) <= 
+                               len([σ for σ in requests if σ[0][5] == a]) * first_use[i, j, a])
+
+    # Define objective components
+    total_group_fulfillment = model.sum(G_fulfilled[dcp][g] 
+                                      for dcp in dcp_groups 
+                                      for g in dcp_groups[dcp])
+    
+    priority_weighted_requests = model.sum(σ[0][2] * F[σ] for σ in requests)
+    
+    total_bandwidth = model.sum(B[σ] for σ in requests)
+    
+    total_link_cost = model.sum(
+        edge_prices[a][(i, j)] * first_use[i, j, a]
+        for a in carriers
+        for (i, j) in bidirectional_edges[a]
+    )
+    
+    total_recovery_cost = model.sum(
+        Q[i, j, τ, a]
+        for a in carriers
+        for (i, j) in bidirectional_edges[a]
+        for τ in time_slots
+    )
+
+
+    """
+    # Combined objective function
+    model.maximize(
+        weight1 * total_group_fulfillment
+        + weight2 * total_bandwidth
+        - weight3 * total_recovery_cost
+        - weight4 * priority_weighted_requests
+        - weight5 * total_link_cost
+    )
+
+    """
+    # Lexicographic optimization method
+    # Step 1: Maximize group fulfillment
+    model.maximize(total_group_fulfillment)
+    solution = model.solve(log_output=True)
+    if solution:
+        max_group_fulfillment = solution.get_objective_value()
+        model.add_constraint(total_group_fulfillment >= max_group_fulfillment)
+
+        # Step 2: Minimize priority-weighted requests
+        model.minimize(priority_weighted_requests)
+        solution = model.solve(log_output=True)
+        if solution:
+            min_priority_cost = solution.get_objective_value()
+            model.add_constraint(priority_weighted_requests <= min_priority_cost)
+
+            # Step 3: Maximize total bandwidth
+            model.minimize(total_recovery_cost)
+            solution = model.solve(log_output=True)
+            if solution:
+                min_recovery_cost = solution.get_objective_value()
+                
+                model.add_constraint(total_recovery_cost <= min_recovery_cost)
+
+                # Step 4: Minimize link usage cost
+                model.minimize(total_link_cost)
+                solution = model.solve(log_output=True)
+                if solution:
+                    min_link_cost = solution.get_objective_value()
+                    model.add_constraint(total_link_cost <= min_link_cost)
+
+                    # Step 5: Minimize recovery cost
+                    model.maximize(total_bandwidth)
+                    solution = model.solve(log_output=True)
+    
+
+    # Solve the model
+    solution = model.solve(log_output=True)
+    
+    if solution:
+        ilp_groups_valid = True
+        # Print detailed results
+        print("\nDetailed Results:")
+        
+        # Request results
+        for σ in requests:
+            request_data = σ[0]
+            dcp_num = σ[1]
+            group = σ[2]
+            print(f"\nDCP{dcp_num} Group {group}:")
+            print(f"Request {request_data[0]}->{request_data[1]}")
+            print(f"Priority: {request_data[2]}")
+            print(f"Fulfilled: {F[σ].solution_value}")
+            if F[σ].solution_value > 0:
+                print(f"Assigned Bandwidth: {B[σ].solution_value}")
+                carrier_id = request_data[5]
+                print(f"Path in {carrier_id}:")
+                for i, j in bidirectional_edges[carrier_id]:
+                    if x[(i, j), σ, carrier_id].solution_value > 0.5:
+                        print(f"  {i}->{j}")
+
+        # Group fulfillment results
+        print("\nGroup Fulfillment Results:")
+        for dcp in dcp_groups:
+            print(f"\n{dcp}:")
+            for g in dcp_groups[dcp]:
+                fulfillment = G_fulfilled[dcp][g].solution_value
+                print(f"  Group {g}: {fulfillment:.2%}")
+                if sum(G_fulfilled[dcp][g].solution_value for g in dcp_groups[dcp]) <= 0.98: 
+                    ilp_groups_valid = False
+
+        # Objective components
+        print("\nObjective Components:")
+        print(f"Group Fulfillment: {total_group_fulfillment.solution_value:.2f}")
+        print(f"Priority Cost: {priority_weighted_requests.solution_value:.2f}")
+        print(f"Total Bandwidth: {total_bandwidth.solution_value:.2f}")
+        print(f"Link Cost: {total_link_cost.solution_value:.2f}")
+        print(f"Recovery Cost: {total_recovery_cost.solution_value:.2f}")
+    else:
+        print("No solution found for ILP")
+
+    
+# Prepare ILP results data similar to KSP format
+    ilp_results_data_carrier1 = []
+    ilp_results_data_carrier2 = []
+    carrier1_id = 1
+    carrier2_id = 1
+    carrier1_lead_time = 0
+    carrier2_lead_time = 0
+    failed_links_carrier = {
+        'carrier1': {},
+        'carrier2': {}
+    } 
+
+    # Process all requests for ILP
+    if solution:
+        # Create mapping from request to DCP
+        request_to_dcp_ilp = {}
+        for dcp_name, groups in dcp_groups.items():
+            for group_name, group_requests in groups.items():
+                for request in group_requests:
+                    source = request[0][0]  # First element of request_data tuple
+                    destination = request[0][1]  # Second element of request_data tuple
+                    request_to_dcp_ilp[f"{source}->{destination}"] = dcp_name
+
+        # First, find which group is selected for each DCP
+        selected_groups = {}
+        for dcp in dcp_groups:
+            for g in dcp_groups[dcp]:
+                if G[dcp][g].solution_value > 0.5:
+                    selected_groups[dcp] = g
+
+        for σ in requests:
+            dcp_num = σ[1]  # Get DCP number from request tuple
+            group = σ[2]  # Get group from request tuple
+            dcp_name = f"DCP{dcp_num}"
+
+            # Only process requests from selected groups
+            if dcp_name in selected_groups and group == selected_groups[dcp_name]:
+                request_data = σ[0]  # Get the request data tuple
+                source = request_data[0]
+                destination = request_data[1]
+                priority = request_data[2]
+                bandwidth = request_data[3]
+                degradation_tolerance = request_data[4]
+                carrier_id = request_data[5]
+                users_count = request_data[6]
+                
+                min_bw = int(bandwidth * (1 - degradation_tolerance))
+                max_bw = bandwidth
+
+                # Check if request was accepted (F value > 0.5)
+                if F[σ].solution_value > 0.5:
+                    satisfied_bw = float(B[σ].solution_value)
+                    path_edges = []
+                    failed_links_list = []
+                    total_cost = 0
+                    total_normal_cost = 0
+                    current_lead_time = 0
+                    result = 1
+                    
+                    # Find all edges used for this request
+                    for i, j in bidirectional_edges[carrier_id]:
+                        if x[(i, j), σ, carrier_id].solution_value > 0.5:
+                            path_edges.append((i, j))
+                            total_cost += edge_prices[carrier_id][(i, j)]
+                            total_normal_cost += edge_normal_prices[carrier_id][(i, j)]
+                            
+                            # Check if this is a failed link that was recovered
+                            if link_status[carrier_id][(i, j)] > 0.5:
+                                sorted_link = tuple(sorted([i, j]))
+                                failed_links_list.append((i, j))
+                                result = 2
+
+                                if sorted_link not in failed_links_carrier[carrier_id]:
+                                    if carrier_id == 'carrier1':
+                                        carrier1_lead_time += 1
+                                        failed_links_carrier[carrier_id][sorted_link] = carrier1_lead_time
+                                    else:
+                                        carrier2_lead_time += 1
+                                        failed_links_carrier[carrier_id][sorted_link] = carrier2_lead_time
+                                link_lead_time = failed_links_carrier[carrier_id][sorted_link]
+                                current_lead_time = max(current_lead_time, link_lead_time)
+
+                    # Build ordered path
+                    ordered_path = [source]
+                    current_node = source
+                    while current_node != destination:
+                        next_found = False
+                        for i, j in path_edges:
+                            if i == current_node:
+                                ordered_path.append(j)
+                                current_node = j
+                                next_found = True
+                                break
+                        if not next_found:
+                            break
+
+                    # Format path string
+                    path_str = '->'.join(map(str, ordered_path))
+
+                    # Format failed links for CSV
+                    failed_links_str = ', '.join([f"{i}->{j}" for i, j in failed_links_list])
+                    failed_links_count = len(failed_links_list)
+                    total_hops = len(ordered_path) - 1
+                    successful_links_count = total_hops - failed_links_count
+                else:
+                    # Set default values for unsolved requests
+                    satisfied_bw = 0
+                    result = 0
+                    current_lead_time = 0
+                    total_cost = 0
+                    total_normal_cost = 0
+                    failed_links_str = "None"
+                    path_str = "None"
+                    failed_links_count = 0
+                    successful_links_count = 0
+                    total_hops = 0
+                
+                request_key = f"{source}->{destination}"
+                request_dcp = request_to_dcp_ilp.get(request_key, '')
+                
+                # Get and increment the appropriate ID counter
+                if carrier_id == 'carrier1':
+                    current_id = carrier1_id
+                    carrier1_id += 1
+                else:
+                    current_id = carrier2_id
+                    carrier2_id += 1
+
+                # Create row for CSV
+                row = {
+                    'ID': current_id,
+                    'Src_node': source,
+                    'Dst_node': destination,
+                    'Min_Req_BW': int(min_bw),
+                    'Max_Req_BW': int(max_bw),
+                    'Satisfied_Bandwidth': int(satisfied_bw),
+                    'Latency': 20,
+                    'Result': result,
+                    'Lead_Time': current_lead_time,
+                    'Score': 100 if result > 0 else 0,
+                    'Customer_ID': 3 if dcp_num == 1 else 4,  # Use DCP number from request tuple
+                    'Priority': priority,
+                    'Users_count': users_count,
+                    'Price': total_cost,
+                    'Normal_Price': total_normal_cost,
+                    'Used_F_Links': failed_links_str if failed_links_str else "None",
+                    'Route': path_str,
+                    'F_Links': failed_links_count,
+                    'S_Links': successful_links_count,
+                    'Hops': total_hops
+                }
+                
+                if carrier_id == 'carrier1':
+                    ilp_results_data_carrier1.append(row)
+                else:
+                    ilp_results_data_carrier2.append(row)
+
+    # Write ILP results to CSV file
+    csv_fields = ['ID', 'Src_node', 'Dst_node', 'Min_Req_BW', 'Max_Req_BW', 
+                 'Satisfied_Bandwidth', 'Latency', 'Result', 'Lead_Time', 'Score',
+                 'Customer_ID', 'Priority', 'Users_count', 'Price', 'Normal_Price', 
+                 'Used_F_Links', 'Route', 'F_Links', 'S_Links', 'Hops']
+
+    #Subhadeep CHECK output file folder
+    ilp_csv_filename_carrier1 = "ilp1_carrier0_Final.csv"
+    with open(ilp_csv_filename_carrier1, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=csv_fields)
+        writer.writeheader()
+        writer.writerows(ilp_results_data_carrier1)
+
+    ilp_csv_filename_carrier2 = "ilp1_carrier1_Final.csv"
+    with open(ilp_csv_filename_carrier2, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=csv_fields)
+        writer.writeheader()
+        writer.writerows(ilp_results_data_carrier2)
+
+    return ilp_results_data_carrier1, ilp_results_data_carrier2, solution
+
+#create_ilp_model(nodes, edges, requests, capacities, prices, dcp_groups, time_slots, link_status)
+create_ilp_model(nodes_A, nodes_B, edges_A, edges_B, requests, capacities_A, capacities_B, prices_A, prices_B, 
+                        normal_prices_A, normal_prices_B, link_status_A, link_status_B, time_slots, carriers)
+
+
+
+

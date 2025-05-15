@@ -1,0 +1,10 @@
+Path#=9 Customer_Carrier#=7
+path-id:0 s=0 d=2 customer/carrier_id=5 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:1 s=0 d=4 customer/carrier_id=5 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:2 s=2 d=4 customer/carrier_id=5 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:3 s=2 d=8 customer/carrier_id=5 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:4 s=4 d=9 customer/carrier_id=5 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:5 s=2 d=4 customer/carrier_id=6 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:6 s=2 d=10 customer/carrier_id=6 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:7 s=4 d=9 customer/carrier_id=6 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1
+path-id:8 s=9 d=10 customer/carrier_id=6 weight=10 is_esen=1 Max_bandwidth=100000 Min_bandwidth=100000 Priority=1

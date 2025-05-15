@@ -1,0 +1,5 @@
+Total_number_of_satisfied_requests=2 Total_number_of_fiber_link_recovery_task=1
+ID=0 Request (a=04 s=05 d=07) Weight=12 Satisfied_Bandwidth=100000
+ counter=0 Bm05n07 1
+ID=1 Request (a=04 s=07 d=09) Weight=12 Satisfied_Bandwidth=100000
+ counter=0 Bm05n07 1
