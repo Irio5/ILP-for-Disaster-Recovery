@@ -9,7 +9,7 @@ def load_dcp_sets_from_csv(file_paths):
     requests = []
 
     for file_path in file_paths:
-        # Extract DCP and set names from file name, e.g. , "DCP1_Set1.csv"
+        # Extract DCP and set names from file name, e.g., "DCP1_Set1.csv"
         base_name = os.path.basename(file_path).replace('.csv', '')
         dcp_name, set_name = base_name.split('_')
         set_name = set_name.lower()
