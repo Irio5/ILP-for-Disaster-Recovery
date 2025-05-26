@@ -5,8 +5,8 @@ import os
 
 
 def load_dcp_sets_from_csv(file_paths):
-    dcp_sets = {}
-    requests = []
+    dcp_sets ={}
+    requests =[]
 
     for file_path in file_paths:
         # Extract DCP and set names from file name, e.g., "DCP1_Set1.csv"
