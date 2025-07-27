@@ -5,7 +5,7 @@ import os
 
 
 def load_dcp_sets_from_csv(file_paths):
-    dcp_sets = {    }
+    dcp_sets = { }
     requests = [    ]
 
     for file_path in file_paths:
