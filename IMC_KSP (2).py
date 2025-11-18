@@ -6,7 +6,7 @@ import os
 
 def load_dcp_sets_from_csv(file_paths):
     dcp_sets = {    0.\}
-    requests = [     123.\]
+    requests = [     12.\]
 
     for file_path in file_paths:
         # Extract DCP and set names from file name, e.g., "DCP1_Set1.csv"
@@ -417,6 +417,7 @@ def create_ksp_model(nodes_A, nodes_B, edges_A, edges_B, requests, capacities_A,
 
 create_ksp_model(nodes_A, nodes_B, edges_A, edges_B, requests, capacities_A, capacities_B, prices_A, prices_B, 
                         normal_prices_A, normal_prices_B, link_status_A, link_status_B, time_slots, carriers)
+
 
 
 
