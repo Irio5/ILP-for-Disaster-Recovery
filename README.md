@@ -42,7 +42,7 @@ We propose a **Provider Neutral Exchange (PNE)**—a neutral orchestration entit
 
 ## 📄 Citation
 
-If you use this work or code in your research, please cite our paper:
+If you would like to cite the paper:
 
 ```bibtex
 @inproceedings{ants2025disaster,
