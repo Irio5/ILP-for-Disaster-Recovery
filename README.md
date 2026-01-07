@@ -12,11 +12,9 @@
 
 ## ⚡ Overview
 
-When disasters strike, cloud service restoration is often hindered by a lack of trust. Network Carriers and Datacenter Providers (DCPs) face a dilemma: they need to cooperate to restore services, but they hesitate to share sensitive resource data due to confidentiality and competition.
+When disasters strike, cloud service restoration is often hindered by a lack of cooperation. Network Carriers and Datacenter Providers (DCPs) face a dilemma: they need to cooperate to restore services, but they hesitate to share sensitive resource data due to confidentiality and competition.
 
-**This project solves that gridlock.**
-
-We propose a **Provider Neutral Exchange (PNE)**—a neutral orchestration entity—powered by a **Multi-Objective Integer Linear Programming (ILP)** model. The PNE acts as a trusted middleman, ensuring confidentiality while optimizing recovery.
+We propose a **Provider Neutral Exchange (PNE)**—a neutral orchestration entity—powered by a **Multi-Objective Integer Linear Programming (ILP)** model. Where PNE acts as a trusted middleman, ensuring confidentiality while optimizing recovery.
 
 ## 🚀 Key Features
 
