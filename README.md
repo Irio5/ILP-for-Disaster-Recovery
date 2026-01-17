@@ -4,7 +4,7 @@
 [![Award](https://img.shields.io/badge/Award-Best%20Short%20Paper-gold.svg)](#)
 [![Status](https://img.shields.io/badge/Status-Published-green.svg)](#)
 
-> **Winner of the Best Short Paper Award** at the IEEE International Conference on Advanced Networks and Telecommunications Systems (IEEE ANTS 2025), Delhi, India.
+> **Winner of the Best Short Paper Award** at  IEEE International Conference (IEEE ANTS 2025)
 
 ![Best Paper Award Certificate](WhatsApp%20Image%202025-12-18%20at%2016.10.18.jpeg)
 
