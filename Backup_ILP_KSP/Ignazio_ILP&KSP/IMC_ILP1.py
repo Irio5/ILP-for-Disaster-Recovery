@@ -284,7 +284,7 @@ def create_ilp_model(nodes_A, nodes_B, edges_A, edges_B, requests, capacities_A,
     
     
     
-    # Constraint to limit total recovered links to 2 DA CAMBIARE
+    # Constraint to limit total recovered links to 2 
     #model.add_constraint(model.sum(Q[i, j, τ] for (i, j) in bidirectional_edges[a] for τ in time_slots) <= 10)
     #model.add_constraint(model.sum(Q[i, j, τ] for (i, j) in bidirectional_edges[a] for τ in time_slots) >= 3)
     
